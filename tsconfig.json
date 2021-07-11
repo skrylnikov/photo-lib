@@ -1,0 +1,13 @@
+{
+  "files": [
+    "./vite.config.ts"
+  ],
+  "references": [
+    {
+      "path": "./server"
+    },
+    {
+      "path": "./client"
+    },
+  ]
+}

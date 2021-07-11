@@ -1,0 +1,15 @@
+img{
+  /* max-width: 500px; */
+}
+
+.list {
+  /* display: flex;
+  flex-wrap: wrap; */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: masonry;
+}
+
+.list div{
+  margin: 5px;
+}

@@ -1,0 +1,196 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "tsconfigRootDir": "./",
+    "project": [
+      "./tsconfig.json",
+      "./client/tsconfig.json",
+      "./server/tsconfig.json"
+    ]
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "sonarjs",
+    "unicorn",
+    "promise",
+    "react-hooks"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:node/recommended",
+    "plugin:eslint-comments/recommended",
+    "plugin:sonarjs/recommended",
+    "plugin:promise/recommended",
+    "plugin:react/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript"
+  ],
+  "rules": {
+    "keyword-spacing": "error",
+    "key-spacing": [
+      "error",
+      {
+        "mode": "strict"
+      }
+    ],
+    "block-spacing": "error",
+    "spaced-comment": "off",
+    "semi": [
+      "error",
+      "always"
+    ],
+    "object-curly-spacing": [
+      "error",
+      "always"
+    ],
+    "eol-last": "error",
+    "no-multi-spaces": "error",
+    "no-trailing-spaces": "error",
+    "no-whitespace-before-property": "error",
+    "space-before-blocks": [
+      "error",
+      "always"
+    ],
+    "indent": [
+      "error",
+      2,
+      {
+        "SwitchCase": 1
+      }
+    ],
+    "comma-dangle": [
+      "error",
+      "always-multiline"
+    ],
+    "one-var": [
+      "error",
+      "never"
+    ],
+    "max-len": [
+      "error",
+      {
+        "code": 120,
+        "ignoreComments": true,
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true
+      }
+    ],
+    "max-statements-per-line": [
+      "error",
+      {
+        "max": 1
+      }
+    ],
+    "require-atomic-updates": "warn",
+    "arrow-spacing": "error",
+    "max-params": "warn",
+    "react/display-name": "off",
+    "react/prop-types": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "sonarjs/cognitive-complexity": [
+      "error",
+      60
+    ],
+    "import/order": [
+      "warn",
+      {
+        "newlines-between": "always"
+      }
+    ],
+    "eslint-comments/no-unlimited-disable": "warn",
+    "unicorn/no-null": "off",
+    "unicorn/no-reduce": "off",
+    "unicorn/catch-error-name": "off",
+    "unicorn/no-nested-ternary": "off",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/prefer-query-selector": "warn",
+    "unicorn/no-abusive-eslint-disable": "warn",
+    "unicorn/explicit-length-check": [
+      "warn",
+      {
+        "non-zero": "not-equal"
+      }
+    ],
+    "unicorn/no-lonely-if": "off",
+    "unicorn/no-array-for-each": "off",
+    "unicorn/prefer-dom-node-text-content": "warn",
+    "unicorn/prefer-dom-node-append": "warn",
+    "unicorn/prefer-dom-node-remove": "warn",
+    "unicorn/prefer-spread": "warn",
+    "unicorn/prefer-date-now": "warn",
+    "unicorn/prefer-regexp-test": "warn",
+    "unicorn/prefer-default-parameters": "warn",
+    "unicorn/no-this-assignment": "warn",
+    "unicorn/prefer-number-properties": "warn",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/consistent-destructuring": "off",
+    "unicorn/empty-brace-spaces": "off",
+    "import/no-named-as-default-member": "off",
+    "unicorn/no-array-callback-reference": "off",
+    "unicorn/no-array-push-push": "off",
+    "unicorn/prefer-array-some": "off",
+    "@typescript-eslint/no-empty-interface": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/consistent-type-definitions": [
+      "error",
+      "interface"
+    ],
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "caughtErrors": "none"
+      }
+    ],
+    "@typescript-eslint/naming-convention": [
+      "warn",
+      {
+        "selector": "typeParameter",
+        "format": [
+          "PascalCase"
+        ],
+        "prefix": [
+          "T",
+          "I"
+        ]
+      },
+      {
+        "selector": "interface",
+        "format": [
+          "PascalCase"
+        ],
+        "prefix": [
+          "I"
+        ]
+      },
+      {
+        "selector": [
+          "variable",
+          "function"
+        ],
+        "format": [
+          "camelCase",
+          "PascalCase"
+        ],
+        "leadingUnderscore": "allow"
+      }
+    ],
+    "node/no-unsupported-features/es-syntax": "off",
+    "node/no-missing-import": "off",
+    "node/no-unpublished-import": "off",
+    "import/export": "off",
+    "import/no-unresolved": "off"
+  }
+}
