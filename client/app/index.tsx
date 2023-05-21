@@ -1,17 +1,30 @@
+import './style';
 import React from "react";
+import { useStore } from 'effector-react';
+import { RouterProvider } from 'react-router5';
+import { RootLayout } from 'shared/ui/root-layout';
 import { photoModel } from 'entitites/photo';
-import { reindex } from 'shared/api/admin';
-import { Grid } from 'features/grid';
-import './index.css';
+import { menuModel } from 'entitites/menu';
+import { router } from 'entitites/router';
+import { Header } from "features/header";
+import { Menu } from "features/menu";
+import { Page } from 'page';
 
 photoModel.loadPhotoFx().catch((e) => console.error(e));
 
 export const App = () => {
-  return (<>
-    <h1>Photo Lib</h1>
-    <button onClick={reindex}>reindex</button>
-    <Grid/>
-  </>);
+  const openned = useStore(menuModel.$openned);
+
+
+  return (<RouterProvider router={router}>
+    <RootLayout
+      menuWidth={openned ? 200 : 60}
+      header={<Header/>}
+      menu={<Menu/>}
+    >
+      <Page/>
+    </RootLayout>
+  </RouterProvider>);
 };
 
 

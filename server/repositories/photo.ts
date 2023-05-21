@@ -15,7 +15,7 @@ export interface IPhoto {
   _id: string;
   filename: string;
   path: string;
-  camera: string;
+  camera: string | null;
   orientation: string;
   exposureTime: number;
   iso: number;
@@ -23,7 +23,7 @@ export interface IPhoto {
   aperture: number;
   width: number;
   height: number;
-  lens: string;
+  lens: string | null;
   lat?: number;
   lng?: number;
 }
