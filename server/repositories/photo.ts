@@ -26,6 +26,10 @@ export interface IPhoto {
   lens: string | null;
   lat?: number;
   lng?: number;
+  rotate?: number;
+  scaleX?: number;
+  scaleY?: number;
+  vibrant?: string;
 }
 
 export const findByPath = async (path: string): Promise<Maybe<IPhoto>> => {

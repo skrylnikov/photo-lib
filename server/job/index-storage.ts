@@ -1,10 +1,11 @@
 import { resolve } from 'path';
 import { readdir, unlink, stat } from 'fs/promises';
 
-import { parse } from 'exifr';
+import { parse, rotation } from 'exifr';
 import { FS } from 'lib/fs';
 import sharp from 'sharp';
 import { Photo } from 'repositories';
+import Vibrant from 'sharp-vibrant';
 import { pipe, map, filter, last } from 'remeda';
 
 import { storagePath, previewPath } from '../config';
@@ -42,51 +43,75 @@ export const indexStorage = async () => {
     }
     findedItems++;
 
-    const originalFilePath = resolve(storagePath, path);
+    try {
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const exif: IExif= await parse(originalFilePath, { skip: ['PrintIM', 'ComponentsConfiguration'] });
 
-    const date = exif.CreateDate || (await stat(originalFilePath)).birthtime;
 
-    const width = exif.ImageWidth || exif.ExifImageWidth;
-    const height = exif.ImageHeight || exif.ExifImageHeight;
+      const originalFilePath = resolve(storagePath, path);
 
-    if (!width || !height) {
-      console.error(`${path}: width or height not found`);
-      console.log(exif);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const exif: IExif = await parse(originalFilePath, { skip: ['PrintIM', 'ComponentsConfiguration'] });
+      const rotate = await rotation(originalFilePath);
 
+      const palette = await Vibrant.from(originalFilePath).getPalette();
+    
+      console.log(palette.palette.Vibrant?.hex);
+
+      const date = exif.CreateDate || (await stat(originalFilePath)).birthtime;
+
+      let width = exif.ImageWidth || exif.ExifImageWidth;
+      let height = exif.ImageHeight || exif.ExifImageHeight;
+
+      // const rotate = typeof exif.Orientation === 'number' ? exif.Orientation : Number.parseInt(exif.Orientation?.split?.(' ')?.[1]) || 0;
+
+      if (rotate?.dimensionSwapped) {
+        [width, height] = [height, width];
+      }
+
+      if (!width || !height) {
+        console.error(`${path}: width or height not found`);
+        console.log(exif);
+
+      }
+
+      const photoMaybi = await Photo.create({
+        path,
+        filename: last(path.split('/'))!,
+        camera: exif.Make && exif.Model ? (exif.Make + ' ' + exif.Model) : null,
+        orientation: exif.Orientation,
+        exposureTime: exif.ExposureTime,
+        iso: exif.ISO,
+        date,
+        aperture: exif.ApertureValue,
+        width,
+        height,
+        lens: exif.LensMake && exif.LensModel ? (exif.LensMake + ' ' + exif.LensModel) : null,
+        lat: exif.latitude,
+        lng: exif.longitude,
+        rotate: rotate?.deg || 0,
+        scaleX: rotate?.scaleX || 1,
+        scaleY: rotate?.scaleY || 1,
+        vibrant: palette.palette.LightMuted?.hex,
+      });
+
+      if (photoMaybi.isNone()) {
+        continue;
+      }
+
+      const id = photoMaybi.value._id;
+
+      const isVertical = height > width;
+
+      await sharp(originalFilePath)
+        .resize(isVertical ? { height: 1000 } : { width: 1000 })
+        .webp({ quality: 80 })
+        // .jpeg({ mozjpeg: true, quality: 80 })
+        .toFile(resolve(previewPath, id + '.webp'));
+
+    } catch (e) {
+      console.error(e);
+      console.log(path);
     }
-
-    const photoMaybi = await Photo.create({
-      path,
-      filename: last(path.split('/'))!,
-      camera: exif.Make && exif.Model ? (exif.Make + ' ' + exif.Model) : null,
-      orientation: exif.Orientation,
-      exposureTime: exif.ExposureTime,
-      iso: exif.ISO,
-      date,
-      aperture: exif.ApertureValue,
-      width,
-      height,
-      lens: exif.LensMake && exif.LensModel ? (exif.LensMake + ' ' + exif.LensModel) : null,
-      lat: exif.latitude,
-      lng: exif.longitude,
-    });
-
-    if (photoMaybi.isNone()) {
-      continue;
-    }
-
-    const id = photoMaybi.value._id;
-
-    const isVertical = height > width;
-
-    await sharp(originalFilePath)
-      .resize(isVertical ? { height: 1000 } : { width: 1000 })
-      .jpeg({ mozjpeg: true, quality: 80 })
-      .toFile(resolve(previewPath, id + '.jpg'));
-
   }
   console.log(`finded ${findedItems} new files`);
 };

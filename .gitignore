@@ -3,3 +3,4 @@
 .env
 cache/**/*.db
 cache/**/*.jpg
+cache/**/*.webp

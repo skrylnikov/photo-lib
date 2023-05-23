@@ -29,7 +29,7 @@ export const Grid = () => {
         width={"100%"}
         height={height}
         itemCount={photoList.length}
-        itemSize={(i) => layourList[i].containerHeight}
+        itemSize={(i) => layourList[i].containerHeight + 20}
         renderItem={({ index, style }) => {
           const geometry = layourList[index];
           return (

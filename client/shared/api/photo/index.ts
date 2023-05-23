@@ -15,6 +15,10 @@ export interface IPhoto {
   lens: string;
   lat?: number;
   lng?: number;
+  rotate?: number;
+  scaleX?: number;
+  scaleY?: number;
+  vibrant?: string;
 }
 
 export const getPhotolistAll = async () => {
