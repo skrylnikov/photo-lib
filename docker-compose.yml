@@ -35,8 +35,6 @@ services:
     environment:
       - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/mnt/images
       - IMGPROXY_MAX_SRC_RESOLUTION=9999
-    networks:
-      - app_network
     volumes:
       - /Users/dskrylnikov/Pictures/sample:/mnt/images:ro
 
