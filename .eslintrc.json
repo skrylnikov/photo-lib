@@ -5,6 +5,11 @@
     "tsconfigRootDir": "./",
     "project": [
       "./tsconfig.json",
+      "./packages/ui/tsconfig.json",
+      "./packages/types/tsconfig.json",
+      "./packages/database/tsconfig.json",
+      "./apps/share-api/tsconfig.json",
+      "./apps/share-web/tsconfig.json",
       "./client/tsconfig.json",
       "./server/tsconfig.json"
     ]

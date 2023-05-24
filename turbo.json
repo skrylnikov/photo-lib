@@ -1,0 +1,19 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "globalDotEnv": [".env"],
+  "globalEnv": ["NODE_ENV"],
+  "pipeline": {
+    "build": {
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "studio": {},
+    "generate": {},
+    "db:migrate:dev": {},
+    "lint": {}
+  }
+}

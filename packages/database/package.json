@@ -1,0 +1,23 @@
+{
+  "name": "database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "format": "prisma format",
+    "generate": "prisma generate",
+    "prebuild": "npm run generate",
+    "predev": "npm run generate",
+    "studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "4.14.1"
+  },
+  "devDependencies": {
+    "prisma": "4.14.1",
+    "tsconfig": "*"
+  }
+}

@@ -1,0 +1,53 @@
+services:
+  share-web:
+    container_name: share-web
+    build:
+      context: .
+      dockerfile: ./apps/share-web/Dockerfile
+    restart: always
+    ports:
+      - 3001:4173
+  share-api:
+    container_name: share-api
+    build:
+      context: .
+      dockerfile: ./apps/share-api/Dockerfile
+    restart: always
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    volumes:
+      - /Users/dskrylnikov/Pictures/sample:/mnt/images:ro
+
+  db:
+    container_name: db
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=devpass
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  imgproxy:
+    container_name: imgproxy
+    image: darthsim/imgproxy:latest
+    environment:
+      - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/mnt/images
+      - IMGPROXY_MAX_SRC_RESOLUTION=9999
+    networks:
+      - app_network
+    volumes:
+      - /Users/dskrylnikov/Pictures/sample:/mnt/images:ro
+
+  nginx-cache-proxy:
+    container_name: nginx-cache-proxy
+    image: flaviostutz/nginx-cache-proxy:1.7.7
+      - 8282:80
+    environment:
+      - PROXY_PASS_URL=http://imgproxy:8080/
+      - SSL_DOMAIN=localhost
+      - CACHE_BYPASS=''
+
+volumes:
+  db-data: {}

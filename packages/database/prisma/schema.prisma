@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+model Photo {
+  id           String    @id @default(cuid())
+  filename     String
+  path         String
+  camera       String?
+  orientation  String?
+  exposureTime Float?
+  iso          Int?
+  date         DateTime?
+  aperture     Float?
+  width        Int?
+  height       Int?
+  lens         String?
+  lat          Float?
+  lng          Float?
+  rotate       Float?
+  scaleX       Float?
+  scaleY       Float?
+  vibrant      String?
+}

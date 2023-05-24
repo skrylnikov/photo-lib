@@ -1,0 +1,18 @@
+{
+  "extends": "./base.json",
+  "compilerOptions": {
+    "useDefineForClassFields": true,
+    "lib": ["es2023"],
+    "module": "Node16",
+    "target": "es2022",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true
+  },
+  "exclude": ["node_modules"]
+}

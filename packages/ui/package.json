@@ -1,0 +1,25 @@
+{
+  "name": "ui",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "@emotion/core": "11.0.0",
+    "@emotion/react": "11.11.0",
+    "@emotion/styled": "11.11.0",
+    "use-resize-observer": "9.1.0",
+    "photo-flex-layout": "1.0.0",
+    "effector": "22.8.6",
+    "effector-react": "22.5.3",
+    "patronum": "1.18.0",
+    "react-use": "17.4.0",
+    "types": "*"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.6",
+    "tsconfig": "*"
+  }
+}

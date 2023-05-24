@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=devpass
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    environment:
+      - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/mnt/images
+      - IMGPROXY_MAX_SRC_RESOLUTION=9999
+    ports:
+      - 8080:8080
+    volumes:
+      - /Users/dskrylnikov/Pictures/sample:/mnt/images:ro
+
+  nginx-cache-proxy:
+    image: flaviostutz/nginx-cache-proxy:1.7.7
+    ports:
+      - 8282:80
+    environment:
+      - PROXY_PASS_URL=http://imgproxy:8080/
+      - SSL_DOMAIN=localhost
+      - CACHE_BYPASS=''
+
+
+volumes:
+  db-data: {}

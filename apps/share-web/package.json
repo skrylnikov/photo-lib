@@ -1,0 +1,32 @@
+{
+  "name": "share-web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "vite preview",
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "types": "*",
+    "ui": "*",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@emotion/core": "11.0.0",
+    "@emotion/react": "11.11.0",
+    "@emotion/styled": "11.11.0",
+    "effector": "22.8.6",
+    "effector-react": "22.5.3",
+    "effector-logger": "0.14.0",
+    "patronum": "1.18.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.6",
+    "@types/react-dom": "18.2.4",
+    "tsconfig": "*",
+    "vite": "4.3.8",
+    "@vitejs/plugin-react": "4.0.0",
+    "vite-tsconfig-paths": "4.2.0",
+    "@rollup/plugin-babel": "6.0.3"
+  }
+}
