@@ -1,6 +1,7 @@
 .DS_Store
 node_modules/
 .env
+.prod.env
 cache/**/*.db
 cache/**/*.jpg
 cache/**/*.webp

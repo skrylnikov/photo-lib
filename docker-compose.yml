@@ -16,7 +16,7 @@ services:
     ports:
       - 3000:3000
     env_file:
-      - .env
+      - .prod.env
     volumes:
       - /Users/dskrylnikov/Pictures/sample:/mnt/images:ro
 
