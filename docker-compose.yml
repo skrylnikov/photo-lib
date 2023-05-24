@@ -41,6 +41,8 @@ services:
   nginx-cache-proxy:
     container_name: nginx-cache-proxy
     image: flaviostutz/nginx-cache-proxy:1.7.7
+    ports:
+      - 8282:80
     environment:
       - PROXY_PASS_URL=http://imgproxy:8080/
       - SSL_DOMAIN=localhost
