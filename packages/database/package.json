@@ -11,13 +11,16 @@
     "generate": "prisma generate",
     "prebuild": "npm run generate",
     "predev": "npm run generate",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
   },
   "dependencies": {
     "@prisma/client": "4.14.1"
   },
   "devDependencies": {
     "prisma": "4.14.1",
+    "eslint-config-custom": "*",
     "tsconfig": "*"
   }
 }

@@ -10,24 +10,81 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Image {
+  id       String   @id @default(cuid())
+  filename String
+  date     DateTime
 
-model Photo {
-  id           String    @id @default(cuid())
-  filename     String
-  path         String
+  exif         Json?
+
   camera       String?
-  orientation  String?
   exposureTime Float?
   iso          Int?
-  date         DateTime?
   aperture     Float?
-  width        Int?
-  height       Int?
   lens         String?
   lat          Float?
   lng          Float?
-  rotate       Float?
-  scaleX       Float?
-  scaleY       Float?
-  vibrant      String?
+
+  Vibrant      String?
+  Muted        String?
+  DarkVibrant  String?
+  DarkMuted    String?
+  LightVibrant String?
+  LightMuted   String?
+
+  files     File[]
+  Thumbnail Thumbnail[]
+}
+
+enum FileType {
+  Image
+  Video
+  Metadata
+  Raw
+  Unknown
+}
+
+model File {
+  id        String   @id @default(cuid())
+  path      String   @unique
+  type      FileType
+  extension String
+  date      DateTime
+  primary   Boolean
+
+  width  Int
+  height Int
+
+  rotate Float?
+  scaleX Float?
+  scaleY Float?
+
+  Image   Image?  @relation(fields: [imageId], references: [id])
+  imageId String?
+}
+
+enum ThumbnailSize {
+  x1
+  x2
+  full
+}
+
+enum ThumbnailFormat {
+  jpeg
+  webp
+  avif
+}
+
+model Thumbnail {
+  id     String        @id @default(cuid())
+  path   String        @unique
+  format String
+  size   ThumbnailSize
+  date   DateTime
+  
+  width  Int
+  height Int
+
+  Image   Image?  @relation(fields: [imageId], references: [id])
+  imageId String?
 }

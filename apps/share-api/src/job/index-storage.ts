@@ -3,11 +3,11 @@ import { stat } from 'fs/promises';
 
 import { parse, rotation } from 'exifr';
 import { prisma } from 'database';
-import Vibrant from 'sharp-vibrant';
 import { last } from 'remeda';
 
 import { deepReadDir } from '../lib/fs';
 import { storagePath } from '../config';
+import { ServiceThumbnail } from 'service-thumbnail';
 
 interface IExif {
   Make: string;
@@ -36,23 +36,21 @@ export const indexStorage = async () => {
 
   let findedItems = 0;
   for (const path of pathList) {
-    const savedPhoto = await prisma.photo.findFirst({ where: { path } });
-    if (savedPhoto) {
+    const savedFile = await prisma.file.findFirst({ where: { path } });
+    if (savedFile) {
       continue;
     }
     findedItems++;
 
     try {
-
-
-
       const originalFilePath = resolve(storagePath, path);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const exif: IExif = await parse(originalFilePath, { skip: ['PrintIM', 'ComponentsConfiguration'] });
+      const exif: IExif = await parse(originalFilePath, {
+        skip: ['PrintIM', 'ComponentsConfiguration'],
+      });
       const rotate = await rotation(originalFilePath);
 
-      const palette = await Vibrant.from(originalFilePath).getPalette();
+      // const palette = await Vibrant.from(originalFilePath).getPalette();
 
       const date = exif.CreateDate || (await stat(originalFilePath)).birthtime;
 
@@ -68,33 +66,43 @@ export const indexStorage = async () => {
       if (!width || !height) {
         console.error(`${path}: width or height not found`);
         console.log(exif);
-
       }
+    
 
-      await prisma.photo.create({
+      await prisma.image.create({
         data: {
-          path,
+          // path,
           filename: last(path.split('/'))!,
-          camera: exif.Make && exif.Model ? (exif.Make + ' ' + exif.Model) : null,
-          orientation: exif.Orientation.toString(),
+          camera: exif.Make && exif.Model ? exif.Make + ' ' + exif.Model : null,
+          // orientation: exif.Orientation.toString(),
           exposureTime: exif.ExposureTime,
           iso: exif.ISO,
           date,
           aperture: exif.ApertureValue,
-          width,
-          height,
-          lens: exif.LensMake && exif.LensModel ? (exif.LensMake + ' ' + exif.LensModel) : null,
+          lens: [exif.LensMake, exif.LensModel].join(' ') || null,
           lat: exif.latitude,
           lng: exif.longitude,
-          rotate: rotate?.deg || 0,
-          scaleX: rotate?.scaleX || 1,
-          scaleY: rotate?.scaleY || 1,
-          vibrant: palette.palette.LightMuted?.hex,
+
+          files: {
+            create: {
+              path,
+              type: 'Image',
+              extension: last(path.split('.'))!,
+              width,
+              height,
+              primary: true,
+              date,
+              rotate: rotate?.deg || 0,
+              scaleX: rotate?.scaleX || 1,
+              scaleY: rotate?.scaleY || 1,
+            },
+          },
         },
       });
 
-    } catch (e) {
-      console.error(e);
+      await ServiceThumbnail.generateThumbnail(path);
+    } catch (error) {
+      console.error(error);
       console.log(path);
     }
   }
@@ -102,8 +110,10 @@ export const indexStorage = async () => {
 };
 
 export const reindexStorage = async () => {
-  await prisma.photo.deleteMany();
+  console.log('start reindexing storage')
+  await prisma.image.deleteMany();
+  await prisma.file.deleteMany();
+  await prisma.thumbnail.deleteMany();
 
   await indexStorage();
-
 };

@@ -1,6 +1,8 @@
 import Koa from 'koa';
 import logger from 'koa-logger';
 
+import { ServiceThumbnail } from 'service-thumbnail';
+
 import { controllers } from './controllers';
 import { launch } from './job';
 
@@ -13,3 +15,5 @@ app
 
 
 launch();
+
+ServiceThumbnail.init();

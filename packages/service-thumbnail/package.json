@@ -1,11 +1,18 @@
 {
-  "name": "types",
+  "name": "service-thumbnail",
   "version": "0.0.0",
   "private": true,
-  "main": "src/index.ts",
   "scripts": {
     "lint": "eslint",
     "lint:fix": "eslint --fix"
+  },
+  "main": "src/index.ts",
+  "dependencies": {
+    "bullmq": "^3.14.2",
+    "database": "*",
+    "sharp": "^0.32.1",
+    "threads": "^1.7.0",
+    "types": "*"
   },
   "devDependencies": {
     "eslint-config-custom": "*",

@@ -1,0 +1,16 @@
+{
+  "name": "eslint-config-custom",
+  "version": "0.0.0",
+  "private": true,
+  "main": ".eslintrc.js",
+  "scripts": {
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
+  },
+  "devDependencies": {
+    "eslint": "^8.41.0",
+    "eslint-config-turbo": "^1.10.1",
+    "eslint-kit": "^9.0.9",
+    "prettier": "^2.8.8"
+  }
+}
