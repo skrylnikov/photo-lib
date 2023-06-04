@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import useResizeObserver from 'use-resize-observer';
 import { useStore, useGate } from 'effector-react';
-import { IPhoto } from 'types';
+import { IImage } from 'types';
 
 import { $layourList, WidthGate, setPhotoList } from '../model';
 import { defaultWidth, defaultHeight } from '../const';
@@ -10,7 +10,7 @@ import { Card } from './card';
 import { Wrapper } from './styled';
 
 interface IProps {
-  photoList: IPhoto[];
+  photoList: IImage[];
   onClick: (id: string) => void;
 }
 

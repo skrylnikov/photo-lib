@@ -3,18 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "build": "tsup ./src/index.ts ./src/worker.ts --format esm",
+    "dev": "tsup ./src/index.ts ./src/worker.ts --format esm --watch",
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },
-  "main": "src/index.ts",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
   "dependencies": {
     "bullmq": "^3.14.2",
+    "config": "*",
     "database": "*",
     "sharp": "^0.32.1",
-    "threads": "^1.7.0",
-    "types": "*"
+    "threads": "^1.7.0"
   },
   "devDependencies": {
+    "tsup": "^6.7.0",
     "eslint-config-custom": "*",
     "tsconfig": "*"
   }

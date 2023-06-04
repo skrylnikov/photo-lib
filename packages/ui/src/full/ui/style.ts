@@ -11,10 +11,13 @@ export const Wrapper = styled.div<{background: string}>`
   transition: background 0.5s ease;
 `;
 
+export const Picture =styled.picture`
+`;
+
 export const Image = styled.img`
-  max-width: 100%;
-  max-height: 100%;
-  objectFit: contain;
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
   transition: opacity 0.15s ease;
 `;
 

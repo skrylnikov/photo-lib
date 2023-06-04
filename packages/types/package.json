@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "eslint-config-custom": "*",
-    "tsconfig": "*"
+    "tsconfig": "*",
+    "share-api": "*"
   }
 }

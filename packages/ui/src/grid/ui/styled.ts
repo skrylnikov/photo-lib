@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 
-export const CardWrapper = styled.div<{vibrant?: string}>`
+export const CardWrapper = styled.div<{vibrant: string | null}>`
   position: absolute;
   display: flex;
     flex-direction: column;

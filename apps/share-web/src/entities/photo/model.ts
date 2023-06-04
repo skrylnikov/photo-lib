@@ -1,20 +1,24 @@
-import { createDomain, sample } from "effector";
-import { IPhoto } from 'types';
+import { createDomain, sample } from 'effector';
+
+import { trpc, RouterOutput } from '../../shared/api';
 
 export const photoDomain = createDomain();
 
-export const loadPhotoFx = photoDomain.createEffect(() => {
-  return fetch('/api/photo-list/all').then((res) => res.json()) as Promise<IPhoto[]>;
+export const loadPhotoFx = photoDomain.createEffect(async () => {
+  const result = await trpc.image.list.query();
+
+  return result.filter((image) => image.thumbnails.length > 0);
 });
 
 export const $photoList = photoDomain
-  .createStore<IPhoto[]>([])
-  .on(loadPhotoFx.doneData, (_, payload) => payload)
-;
+  .createStore<RouterOutput['image']['list']>([])
+  .on(loadPhotoFx.doneData, (_, payload) => payload);
 
 export const $photoMap = $photoList.map((photoList) =>
-// eslint-disable-next-line node/no-unsupported-features/es-builtins
-  Object.fromEntries(photoList.map((photo, i) => [photo.id, { ...photo, index: i }])));
+  Object.fromEntries(
+    photoList.map((photo, i) => [photo.id, { ...photo, index: i }])
+  )
+);
 
 export const openFull = photoDomain.createEvent<string>();
 export const closeFull = photoDomain.createEvent();

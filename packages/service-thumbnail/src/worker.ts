@@ -1,16 +1,47 @@
 import { Worker } from 'bullmq';
 import { prisma } from 'database';
 import sharp from 'sharp';
-import { expose } from 'threads';
 import { resolve } from 'node:path';
+
+import { storagePath, cachePath, reddis } from 'config';
 
 import { IDataType } from './types';
 
-console.log('worker init');
+interface IBuildProps {
+  path: string;
+  id: string;
+  format: 'webp' | 'avif';
+  size: 1 | 2 | 'full';
+}
 
-export const storagePath = process.env.STORAGE_PATH as string;
+const formatQuality = {
+  webp: 60,
+  avif: 40,
+};
 
-const worker = new Worker<IDataType>(
+const buildThumbnail = async ({ path, id, format, size }: IBuildProps) => {
+  const strSize = typeof size === 'number' ? `x${size}` as const : size;
+
+  const thumbnailName = `${id}@${strSize}.${format}`;
+  const result = await sharp(resolve(storagePath, path))
+    .resize(typeof size === 'number' ? { height: size * 350 } : {})
+    .rotate()
+    // eslint-disable-next-line no-unexpected-multiline
+    [format]({ quality: formatQuality[format] })
+    .toFile(resolve(cachePath, 'thumbnails', thumbnailName));
+
+  await prisma.thumbnail.create({
+    data: {
+      path: thumbnailName,
+      format,
+      size: strSize,
+      width: result.width,
+      height: result.height,
+      imageId: id,
+    },
+  });
+};
+new Worker<IDataType>(
   'service-thumbnail',
   async (job) => {
     try {
@@ -25,43 +56,63 @@ const worker = new Worker<IDataType>(
             },
           },
         },
+        include: {
+          Thumbnail: true,
+        }
       });
 
+      
       console.log('image', image?.id);
-
+      
       if (!image) {
         await job.log('Image not found');
         console.log('Image not found');
         return;
       }
-
-      const filePath = resolve(storagePath, job.data.path);
-
-      await sharp(filePath)
-        .resize({ height: 350 })
-        .webp({ quality: 70 })
-        .toFile(resolve(__dirname, '../../../cache/thumbnails', `${image.id}.webp`));
-
-      await job.updateProgress(20);
-
-      await sharp(filePath)
-        .resize({ height: 700 })
-        .webp({ quality: 70 })
-        .toFile(resolve(__dirname, '../../../cache/thumbnails', `${image.id}@2x.webp`));
-
-      await job.updateProgress(40);
-
-      await sharp(filePath)
-        .resize({ height: 350 })
-        .avif({ quality: 45 })
-        .toFile(resolve(__dirname, '../../../cache/thumbnails', `${image.id}.avif`));
-
-      await job.updateProgress(60);
-
-      await sharp(filePath)
-        .resize({ height: 700 })
-        .avif({ quality: 45 })
-        .toFile(resolve(__dirname, '../../../cache/thumbnails', `${image.id}2x.avif`));
+      if(image?.Thumbnail.length) {
+        await job.log('Image already processed');
+        console.log('Image already processed');
+        return;
+      }
+      
+      await Promise.all([
+        buildThumbnail({
+          path: job.data.path,
+          id: image.id,
+          format: 'webp',
+          size: 'full',
+        }),
+        buildThumbnail({
+          path: job.data.path,
+          id: image.id,
+          format: 'webp',
+          size: 1,
+        }),
+        buildThumbnail({
+          path: job.data.path,
+          id: image.id,
+          format: 'webp',
+          size: 2,
+        }),
+        buildThumbnail({
+          path: job.data.path,
+          id: image.id,
+          format: 'avif',
+          size: 'full',
+        }),
+        buildThumbnail({
+          path: job.data.path,
+          id: image.id,
+          format: 'avif',
+          size: 1,
+        }),
+        buildThumbnail({
+          path: job.data.path,
+          id: image.id,
+          format: 'avif',
+          size: 2,
+        }),
+      ]);
 
       await job.log('Finish processing job');
     } catch (error) {
@@ -70,7 +121,6 @@ const worker = new Worker<IDataType>(
   },
   {
     concurrency: 1,
+    connection: reddis,
   }
 );
-
-expose({});

@@ -5,6 +5,7 @@
   "globalEnv": ["NODE_ENV"],
   "pipeline": {
     "build": {
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
     "dev": {
@@ -14,6 +15,7 @@
     "studio": {},
     "generate": {},
     "db:migrate:dev": {},
+    "db:migrate:deploy": {},
     "lint": {},
     "lint:fix": {}
   }

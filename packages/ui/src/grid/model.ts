@@ -2,7 +2,7 @@ import { photoFlexLayout } from 'photo-flex-layout';
 import { createDomain , combine } from 'effector';
 import { createGate } from 'effector-react';
 import { throttle } from 'patronum';
-import { IPhoto } from 'types';
+import { IImage } from 'types';
 
 import { defaultWidth, defaultHeight } from './const';
 
@@ -21,8 +21,8 @@ $width.on(throttleWidth, (_, { width }) => width);
 export const $height = gridDomain.createStore(defaultHeight);
 $height.on(WidthGate.state, (_, { height }) => height);
 
-export const setPhotoList = gridDomain.createEvent<IPhoto[]>();
-export const $photoList = gridDomain.createStore<IPhoto[]>([]);
+export const setPhotoList = gridDomain.createEvent<IImage[]>();
+export const $photoList = gridDomain.createStore<IImage[]>([]);
 $photoList.on(setPhotoList, (_, photoList) => photoList);
 
 export const $layourList = combine([$photoList, $width]).map(([photoList, width]) => {
@@ -30,6 +30,9 @@ export const $layourList = combine([$photoList, $width]).map(([photoList, width]
     targetRowHeight: 280,
     containerWidth: width,
     boxSpacing: 2,
-    items: photoList,
+    items: photoList.map((photo) => ({
+      width: photo.thumbnails[0].width,
+      height: photo.thumbnails[0].height,
+    })),
   });
 });

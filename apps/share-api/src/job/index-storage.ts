@@ -1,13 +1,14 @@
 import { resolve } from 'path';
 import { stat } from 'fs/promises';
 
-import { parse, rotation } from 'exifr';
+import Exifr from 'exifr';
 import { prisma } from 'database';
 import { last } from 'remeda';
 
 import { deepReadDir } from '../lib/fs';
-import { storagePath } from '../config';
+import { storagePath } from 'config';
 import { ServiceThumbnail } from 'service-thumbnail';
+
 
 interface IExif {
   Make: string;
@@ -40,15 +41,15 @@ export const indexStorage = async () => {
     if (savedFile) {
       continue;
     }
-    findedItems++;
+    findedItems++; 
 
-    try {
+    try { 
       const originalFilePath = resolve(storagePath, path);
 
-      const exif: IExif = await parse(originalFilePath, {
+      const exif: IExif = await Exifr.parse(originalFilePath, {
         skip: ['PrintIM', 'ComponentsConfiguration'],
       });
-      const rotate = await rotation(originalFilePath);
+      const rotate = await Exifr.rotation(originalFilePath);
 
       // const palette = await Vibrant.from(originalFilePath).getPalette();
 
@@ -111,9 +112,12 @@ export const indexStorage = async () => {
 
 export const reindexStorage = async () => {
   console.log('start reindexing storage')
-  await prisma.image.deleteMany();
-  await prisma.file.deleteMany();
-  await prisma.thumbnail.deleteMany();
+  await Promise.all([
+    prisma.image.deleteMany(),
+    prisma.file.deleteMany(),
+    prisma.thumbnail.deleteMany(),
+    ServiceThumbnail.clear(),
+  ]);
 
   await indexStorage();
 };

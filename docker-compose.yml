@@ -6,47 +6,66 @@ services:
       dockerfile: ./apps/share-web/Dockerfile
     restart: always
     ports:
-      - 3001:4173
+      - 4000:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DEBUG=true
+      - STATIC_ENABLED=true
+      - STATIC_RULES=
+        *,^/trpc/(.*),http://share-api:4001/trpc/$1;
+        *,^/storage/(.*),http://share-api:4001/storage/$1;
+    depends_on:
+      - share-api
+
   share-api:
     container_name: share-api
     build:
       context: .
       dockerfile: ./apps/share-api/Dockerfile
     restart: always
-    ports:
-      - 3000:3000
-    env_file:
-      - .prod.env
+    environment:
+      - STORAGE_PATH=/mnt/images
+      - CACHE_PATH=/mnt/cache
+      - REDDIS_HOST=redis
+      - REDDIS_PORT=6379
+      - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
     volumes:
-      - ${STORAGE_PATH}:/mnt/images:ro
+      - cache-thumbnails:/mnt/cache/thumbnails
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      prisma-migrate:
+          condition: service_completed_successfully
+
+
+  prisma-migrate:
+    container_name: prisma-migrate
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile
+    restart: "no"
+    environment:
+      - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
+    depends_on:
+      - db
 
   db:
     container_name: db
-    image: postgres:15-alpine
+    image: cgr.dev/chainguard/postgres:15
     restart: always
     environment:
       - POSTGRES_PASSWORD=devpass
     volumes:
       - db-data:/var/lib/postgresql/data
 
-  imgproxy:
-    container_name: imgproxy
-    image: darthsim/imgproxy:latest
-    environment:
-      - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/mnt/images
-      - IMGPROXY_MAX_SRC_RESOLUTION=9999
-    volumes:
-      - ${STORAGE_PATH}:/mnt/images:ro
-
-  nginx-cache-proxy:
-    container_name: nginx-cache-proxy
-    image: flaviostutz/nginx-cache-proxy:1.7.7
-    ports:
-      - 8282:80
-    environment:
-      - PROXY_PASS_URL=http://imgproxy:8080/
-      - SSL_DOMAIN=localhost
-      - CACHE_BYPASS=''
+  redis:
+    container_name: redis
+    image: cgr.dev/chainguard/redis:7
+    restart: always
 
 volumes:
   db-data: {}
+  cache-thumbnails: {}

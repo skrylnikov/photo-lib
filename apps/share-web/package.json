@@ -10,26 +10,29 @@
     "lint:fix": "eslint --fix"
   },
   "dependencies": {
-    "types": "*",
-    "ui": "*",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
     "@emotion/core": "11.0.0",
     "@emotion/react": "11.11.0",
     "@emotion/styled": "11.11.0",
+    "@trpc/client": "^10.29.0",
+    "@trpc/server": "^10.29.0",
     "effector": "22.8.6",
-    "effector-react": "22.5.3",
     "effector-logger": "0.14.0",
-    "patronum": "1.18.0"
+    "effector-react": "22.5.3",
+    "patronum": "1.18.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "types": "*",
+    "ui": "*"
   },
   "devDependencies": {
+    "@rollup/plugin-babel": "6.0.3",
     "@types/react": "18.2.6",
     "@types/react-dom": "18.2.4",
-    "tsconfig": "*",
-    "eslint-config-custom": "*",
-    "vite": "4.3.8",
     "@vitejs/plugin-react": "4.0.0",
-    "vite-tsconfig-paths": "4.2.0",
-    "@rollup/plugin-babel": "6.0.3"
+    "eslint-config-custom": "*",
+    "share-api": "*",
+    "tsconfig": "*",
+    "vite": "4.3.8",
+    "vite-tsconfig-paths": "4.2.0"
   }
 }

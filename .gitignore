@@ -7,3 +7,5 @@ cache/**/*.jpg
 cache/**/*.webp
 cache/**/*.avif
 .turbo
+dist
+docker-compose.prod.yml

@@ -11,7 +11,7 @@ FROM base AS builder
 WORKDIR /app
 RUN npm i -g turbo
 COPY . .
-RUN turbo prune --scope=share-api --docker
+RUN turbo prune --scope=database --docker
 
 # Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
@@ -40,14 +40,13 @@ COPY turbo.json turbo.json
 ARG DATABASE_URL="postgresql://postgres:devpass@db:5432/postgres?schema=public"
 # ENV DATABASE_URL=$DATABASE_URL
 
-RUN npx turbo run build --filter=share-api
 RUN npx prisma generate
 
 FROM base AS runner
 
 WORKDIR /app
 
-COPY --from=installer /app/apps/share-api/package.json .
+COPY --from=installer /app/packages/database/package.json .
 COPY --from=installer /app .
 
 
@@ -58,4 +57,4 @@ COPY --from=installer /app .
 
 EXPOSE 4001
 
-CMD ["/app/apps/share-api/dist/index.js"]
+CMD npm run db:migrate:deploy

@@ -13,4 +13,9 @@ module.exports = configure({
     presets.react(),
     presets.effector(),
   ],
+  extend: {
+    rules: {
+      'no-new': 'off',
+    },
+  },
 });

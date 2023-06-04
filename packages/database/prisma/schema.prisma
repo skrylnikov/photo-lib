@@ -80,7 +80,6 @@ model Thumbnail {
   path   String        @unique
   format String
   size   ThumbnailSize
-  date   DateTime
   
   width  Int
   height Int
