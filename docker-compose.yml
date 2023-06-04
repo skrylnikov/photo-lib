@@ -54,7 +54,7 @@ services:
 
   db:
     container_name: db
-    image: cgr.dev/chainguard/postgres:15
+    image: postgres:15-alpine
     restart: always
     environment:
       - POSTGRES_PASSWORD=devpass
@@ -63,7 +63,7 @@ services:
 
   redis:
     container_name: redis
-    image: cgr.dev/chainguard/redis:7
+    image: redis:7-alpine
     restart: always
 
 volumes:
