@@ -60,6 +60,7 @@ services:
       - POSTGRES_PASSWORD=devpass
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
 
   redis:
     container_name: redis
