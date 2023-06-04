@@ -12,10 +12,18 @@
       "cache": false,
       "persistent": true
     },
-    "studio": {},
-    "generate": {},
-    "db:migrate:dev": {},
-    "db:migrate:deploy": {},
+    "studio": {
+      "cache": false
+    },
+    "generate": {
+      "cache": false
+    },
+    "db:migrate:dev": {
+      "cache": false
+    },
+    "db:migrate:deploy": {
+      "cache": false
+    },
     "lint": {},
     "lint:fix": {}
   }
