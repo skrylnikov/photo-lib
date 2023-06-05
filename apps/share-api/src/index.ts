@@ -22,6 +22,7 @@ app.register(fastifyTRPCPlugin, {
 app.register(Static, {
   root: resolve(cachePath, 'thumbnails'),
   prefix: '/storage/thumbnails',
+  maxAge: '10d',
 });
 
 app.register(storageRouter, {
