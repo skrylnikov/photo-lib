@@ -41,6 +41,7 @@ enum FileType {
   Video
   Metadata
   Raw
+  Screenshot
   Unknown
 }
 
@@ -64,9 +65,13 @@ model File {
 }
 
 enum ThumbnailSize {
+  hd
+  uhd
+  full
+
+  //DEPCRECATED
   x1
   x2
-  full
 }
 
 enum ThumbnailFormat {

@@ -22,9 +22,7 @@ export const Full = ({ photo, close, onNext, onPrev }: IProps) => {
     setIsLoaded(false);
   }, [photo]);
 
-  const thumbnailMap = useMemo(() => {
-    return Object.fromEntries(photo.thumbnails.filter((x) => x.size === 'full').map(x => [x.format, x]));
-  }, [photo]);
+  const image = useMemo(() => photo.thumbnails.find((x) => x.size === 'uhd') || photo.thumbnails[0], [photo]);
 
 
   return (
@@ -32,23 +30,8 @@ export const Full = ({ photo, close, onNext, onPrev }: IProps) => {
       <Close onClick={close} >+</Close>
       <Left onClick={onPrev} >←</Left>
       <Right onClick={onNext} >→</Right>
-      <Picture>
-        {thumbnailMap.avif && <source srcSet={`/storage/thumbnails/${thumbnailMap.avif.path}`} type="image/avif" />}
-        {thumbnailMap.webp && <source srcSet={`/storage/thumbnails/${thumbnailMap.webp.path}`} type="image/webp" />}
-        <Image
-          src={`/storage/thumbnails/${thumbnailMap.webp.path}`}
-          loading="lazy"
-          alt=""
-          onLoad={(e) => {
-            setIsLoaded(true);
-            console.log('onLoad', e);
-          }}
-          style={{ opacity: isLoaded ? 1 : 0 }}
-        />
-
-      </Picture>
-      {/* <Image
-        src={`imgproxy/insecure/skp:jpg/plain/local:///${photo.path}@jpg`}
+      <Image
+        src={`/storage/thumbnails/${image.path}`}
         onLoadStart={(e) => {
           setIsLoaded(false);
           console.log('onLoadStart', e);
@@ -61,11 +44,8 @@ export const Full = ({ photo, close, onNext, onPrev }: IProps) => {
           setIsLoaded(true);
           console.log('onLoad', e);
         }}
-        onProgress={(e) => {
-          console.log('onProgress', e);
-        }}
         style={{ opacity: isLoaded ? 1 : 0 }}
-      /> */}
+      />
     </Wrapper>
   );
 };

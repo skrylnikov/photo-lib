@@ -20,8 +20,8 @@ export default defineConfig({
     port: 4000,
     host: '0.0.0.0',
     proxy: {
-      '/trpc': 'http://localhost:4001',
-      '/storage': 'http://localhost:4001',
+      '/trpc': 'http://127.0.0.1:4001',
+      '/storage': 'http://127.0.0.1:4001',
     },
   },
 });

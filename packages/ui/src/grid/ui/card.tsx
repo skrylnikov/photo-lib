@@ -14,34 +14,27 @@ export const Card = ({ data, box, onClick }: IProps) => {
   const height = box.height;
   const width = box.width;
 
-  const imageMap = useMemo(() => {
-    return Object.fromEntries(data.thumbnails.map(x => [x.format + '_' + x.size, x]));
-  }, [data]);
+  const image = useMemo(() => data.thumbnails.find((x) => x.size === 'hd') || data.thumbnails[0], [data]);
+  const uhd = useMemo(() => data.thumbnails.find((x) => x.size === 'uhd') || data.thumbnails[0], [data]);
 
   return (
     <CardWrapper
       key={data.id}
       style={{ width, height, top: box.top, left: box.left }}
       vibrant={data.LightMuted}
-      onClick={() => onClick(data.id)}
+      target="_blank"
+      rel="noreferrer"
+      href={`/storage/thumbnails/${uhd.path}`}
+      data-pswp-width={uhd.width}
+      data-pswp-height={uhd.height}
     >
-      <picture>
-        {imageMap.avif_x2 && <source srcSet={`/storage/thumbnails/${imageMap.avif_x2.path} 2x`} type="image/avif" />}
-        {imageMap.webp_x2 && <source srcSet={`/storage/thumbnails/${imageMap.webp_x2.path} 2x`} type="image/webp" />}
-        {imageMap.avif_x1 && <source srcSet={`/storage/thumbnails/${imageMap.avif_x1.path}`} type="image/avif" />}
-        {imageMap.webp_x1 && <source srcSet={`/storage/thumbnails/${imageMap.webp_x1.path}`} type="image/webp" />}
-        <img
-          src={`/storage/thumbnails/${imageMap.webp_x1.path}`}
-          loading="lazy"
-          height={height}
-          width={width} alt="" />
-      </picture>
-      {/* <Image transform={`rotate(${0}deg) scale(${1}, ${1})`}
-        src={`/storage/thumbnails/${data.thumbnails[0].path}`}
-        // srcSet={`imgproxy/insecure/rs:fit:${sizex2}:false:0/plain/local:///${data.id}@webp 2x`}
+      <img
+        src={`/storage/thumbnails/${image.path}`}
         loading="lazy"
         height={height}
-        width={width} alt="" /> */}
+        width={width}
+        alt=""
+      />
     </CardWrapper>
   );
 };

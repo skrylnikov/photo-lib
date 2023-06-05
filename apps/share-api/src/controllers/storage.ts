@@ -1,16 +1,13 @@
 import { FastifyInstance } from 'fastify';
 
+import { reindexStorage } from '../job';
+
 export const storageRouter = async (fastify: FastifyInstance) => {
 
-  fastify.get<{
-    Params: {
-      path: string;
-    }
-  }>('/thumpnail/:path', async (request, reply) => {
-     request.params.path;
+  fastify.get('/reindex', async () => {
 
-    return {
-      status: 'ok',
-    };
+    await reindexStorage();
+
+    return { status: 'ok' };
   });
-}
+};

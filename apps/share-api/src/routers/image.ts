@@ -4,6 +4,8 @@ import { prisma } from 'database';
 
 export const imageRouter = router({
   list: publicProcedure.query(async () => {
+    console.log('list');
+    
     const list = await prisma.image.findMany({
       include: {
         Thumbnail: true,

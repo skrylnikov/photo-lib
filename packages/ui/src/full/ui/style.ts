@@ -11,8 +11,6 @@ export const Wrapper = styled.div<{background: string}>`
   transition: background 0.5s ease;
 `;
 
-export const Picture =styled.picture`
-`;
 
 export const Image = styled.img`
   max-width: 100vw;

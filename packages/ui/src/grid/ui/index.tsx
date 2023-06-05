@@ -2,6 +2,9 @@ import React, { useRef, useEffect } from "react";
 import useResizeObserver from 'use-resize-observer';
 import { useStore, useGate } from 'effector-react';
 import { IImage } from 'types';
+import PhotoSwipeLightbox from 'photoswipe/lightbox';
+import type PL from 'photoswipe';
+import 'photoswipe/style.css';
 
 import { $layourList, WidthGate, setPhotoList } from '../model';
 import { defaultWidth, defaultHeight } from '../const';
@@ -26,10 +29,24 @@ export const Grid = ({ photoList, onClick }: IProps) => {
     setPhotoList(photoList);
   }, [photoList]);
 
+  useEffect(() => {
+    let lightbox: PL | null = new PhotoSwipeLightbox({
+      gallery: '#galery',
+      children: 'a',
+      pswpModule: () => import('photoswipe'),
+      
+    });
+    lightbox?.init();
+
+    return () => {
+      lightbox?.destroy();
+      lightbox = null;
+    };
+  }, []);
 
   return (
     <Wrapper ref={ref}>
-      <div style={{ position: 'relative' }}>
+      <div id="galery" style={{ position: 'relative' }}>
         {layour.boxes.map((x, i) => <Card key={i} data={photoList[i]} box={x} onClick={onClick} />)}
       </div>
     </Wrapper>

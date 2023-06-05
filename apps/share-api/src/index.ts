@@ -1,14 +1,14 @@
-import { ServiceThumbnail } from 'service-thumbnail';
 
-import { controllers } from './controllers';
-import { launch } from './job';
 import fastify from 'fastify';
 import Static from '@fastify/static';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import { resolve } from 'node:path';
 
 import { cachePath } from 'config';
+import { ServiceThumbnail } from 'service-thumbnail';
 
+import { storageRouter } from './controllers';
+import { launch } from './job';
 import { appRouter } from './routers';
 import { createContext } from './context';
 
@@ -21,7 +21,11 @@ app.register(fastifyTRPCPlugin, {
 
 app.register(Static, {
   root: resolve(cachePath, 'thumbnails'),
-  prefix: '/storage/thumbnails/',
+  prefix: '/storage/thumbnails',
+});
+
+app.register(storageRouter, {
+  prefix: '/storage',
 });
 
 app.register(async (fastify) => {
@@ -49,8 +53,3 @@ app.listen({ port: 4001, host: '0.0.0.0' }, (err, address) => {
 launch();
 
 ServiceThumbnail.init();
-
-process.setUncaughtExceptionCaptureCallback((err) => {
-  console.error(err);
-  process.exit(1);
-});
