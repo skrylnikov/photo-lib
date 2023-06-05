@@ -15,7 +15,7 @@ export const Card = ({ data, box, onClick }: IProps) => {
   const width = box.width;
 
   const image = useMemo(() => data.thumbnails.find((x) => x.size === 'hd') || data.thumbnails[0], [data]);
-  const uhd = useMemo(() => data.thumbnails.find((x) => x.size === 'uhd') || data.thumbnails[0], [data]);
+  const uhd = useMemo(() => data.thumbnails.find((x) => x.size === 'full') || data.thumbnails[0], [data]);
 
   return (
     <CardWrapper
