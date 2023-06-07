@@ -15,7 +15,7 @@ cd photo-lib
 Create config file:
 
 ```bash
-nano docker-compose.prod.yml
+nano share.prod.yml
 ```
 
 
