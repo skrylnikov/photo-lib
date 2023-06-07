@@ -4,13 +4,14 @@ import Static from '@fastify/static';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import { resolve } from 'node:path';
 
-import { cachePath } from 'config';
+import { cachePath, storagePath } from 'config';
 import { ServiceThumbnail } from 'service-thumbnail';
 
-import { storageRouter } from './controllers';
 import { launch } from './job';
 import { appRouter } from './routers';
 import { createContext } from './context';
+
+import './bot';
 
 const app = fastify({ logger: true, maxParamLength: 5000,  });
 
@@ -25,8 +26,11 @@ app.register(Static, {
   maxAge: '10d',
 });
 
-app.register(storageRouter, {
-  prefix: '/storage',
+app.register(Static, {
+  root: storagePath,
+  prefix: '/storage/file',
+  maxAge: '10d',
+  decorateReply: false 
 });
 
 app.register(async (fastify) => {
@@ -34,7 +38,7 @@ app.register(async (fastify) => {
     return 'hello world';
   });
   fastify.get('/health', async () => {
-    return { status: 'ok' };
+    return { status: 'ok' }; 
   });
 })
 

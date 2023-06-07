@@ -19,5 +19,5 @@ export const Image = styled.img<{ transform: string }>`
 `;
 
 export const Wrapper = styled.div`
-  height: calc(100vh - 100px);
+  height: 100vh;
 `;

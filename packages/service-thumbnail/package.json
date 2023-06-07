@@ -19,8 +19,8 @@
     "threads": "^1.7.0"
   },
   "devDependencies": {
-    "tsup": "^6.7.0",
     "eslint-config-custom": "*",
-    "tsconfig": "*"
+    "tsconfig": "*",
+    "tsup": "^6.7.0"
   }
 }

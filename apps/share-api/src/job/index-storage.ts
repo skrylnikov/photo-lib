@@ -4,6 +4,7 @@ import { stat } from 'fs/promises';
 import Exifr from 'exifr';
 import { prisma } from 'database';
 import { last } from 'remeda';
+import sharp from 'sharp';
 
 import { deepReadDir } from '../lib/fs';
 import { storagePath } from 'config';
@@ -53,10 +54,17 @@ export const indexStorage = async () => {
 
       // const palette = await Vibrant.from(originalFilePath).getPalette();
 
-      const date = exif.CreateDate || (await stat(originalFilePath)).birthtime;
+      const date = exif?.CreateDate || (await stat(originalFilePath)).birthtime;
 
-      let width = exif.ImageWidth || exif.ExifImageWidth;
-      let height = exif.ImageHeight || exif.ExifImageHeight;
+      let width = exif?.ImageWidth || exif?.ExifImageWidth;
+      let height = exif?.ImageHeight || exif?.ExifImageHeight;
+
+      if(!exif){
+        const meta = await sharp(originalFilePath).metadata();
+
+        width = meta.width!;
+        height = meta.height!;
+      }
 
       // const rotate = typeof exif.Orientation === 'number' ? exif.Orientation : Number.parseInt(exif.Orientation?.split?.(' ')?.[1]) || 0;
 
@@ -74,15 +82,15 @@ export const indexStorage = async () => {
         data: {
           // path,
           filename: last(path.split('/'))!,
-          camera: exif.Make && exif.Model ? exif.Make + ' ' + exif.Model : null,
+          camera: exif?.Make && exif?.Model ? exif.Make + ' ' + exif.Model : null,
           // orientation: exif.Orientation.toString(),
-          exposureTime: exif.ExposureTime,
-          iso: exif.ISO,
+          exposureTime: exif?.ExposureTime,
+          iso: exif?.ISO,
           date,
-          aperture: exif.ApertureValue,
-          lens: [exif.LensMake, exif.LensModel].join(' ') || null,
-          lat: exif.latitude,
-          lng: exif.longitude,
+          aperture: exif?.ApertureValue,
+          lens: [exif?.LensMake, exif?.LensModel].join(' ') || null,
+          lat: exif?.latitude,
+          lng: exif?.longitude,
 
           files: {
             create: {

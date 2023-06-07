@@ -13,6 +13,7 @@
     "@emotion/styled": "11.11.0",
     "effector": "22.8.6",
     "effector-react": "22.5.3",
+    "framer-motion": "^10.12.16",
     "patronum": "1.18.0",
     "photo-flex-layout": "1.0.0",
     "photoswipe": "^5.3.7",

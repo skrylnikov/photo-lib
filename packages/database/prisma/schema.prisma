@@ -65,13 +65,14 @@ model File {
 }
 
 enum ThumbnailSize {
-  hd
-  uhd
+  preview
   full
 
   //DEPCRECATED
   x1
   x2
+  uhd
+  hd
 }
 
 enum ThumbnailFormat {

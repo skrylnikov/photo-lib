@@ -20,7 +20,7 @@
     "lint:fix": "eslint --fix"
   },
   "dependencies": {
-    "@prisma/client": "4.14.1"
+    "@prisma/client": "4.15.0"
   },
   "devDependencies": {
     "eslint-config-custom": "*",

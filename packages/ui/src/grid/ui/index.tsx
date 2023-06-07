@@ -47,7 +47,7 @@ export const Grid = ({ photoList, onClick }: IProps) => {
   return (
     <Wrapper ref={ref}>
       <div id="galery" style={{ position: 'relative' }}>
-        {layour.boxes.map((x, i) => <Card key={i} data={photoList[i]} box={x} onClick={onClick} />)}
+        {layour.boxes.map((x, i) => <Card key={i} data={photoList[i]} box={x} onClick={onClick} i={i} scrollRef={ref} />)}
       </div>
     </Wrapper>
 

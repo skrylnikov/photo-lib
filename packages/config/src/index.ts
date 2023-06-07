@@ -7,6 +7,7 @@ config({
 
 export const storagePath = env.STORAGE_PATH || '';
 export const cachePath = env.CACHE_PATH || '';
+export const tgBotToken = env.TG_BOT_TOKEN || '';
 
 export const reddis = {
   host: env.REDDIS_HOST || 'localhost',

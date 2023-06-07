@@ -8,6 +8,7 @@ export const imageRouter = router({
     
     const list = await prisma.image.findMany({
       include: {
+        files: true,
         Thumbnail: true,
       },
       orderBy: {
@@ -22,3 +23,4 @@ export const imageRouter = router({
     }));
   }),
 });
+

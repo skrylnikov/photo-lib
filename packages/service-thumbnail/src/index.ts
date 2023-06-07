@@ -1,11 +1,11 @@
-import { Worker } from 'node:worker_threads';
-import { Queue } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { cachePath, reddis } from 'config';
 
 import { IDataType } from './types';
+
 
 const queue = new Queue<IDataType>('service-thumbnail', {
   connection: reddis,
@@ -17,15 +17,21 @@ export const ServiceThumbnail = {
   init: async () => {
     console.log('ServiceThumbnail init');
     try {
-      new Worker(resolve(dirname, './worker.js'));
-      // await spawn(worker);
+      new Worker('service-thumbnail', resolve(dirname, './worker.js'), {
+        connection: reddis,
+        concurrency: 1,
+        useWorkerThreads: true,
+      });
     } catch (e) {
       console.error(e);
     }
   },
   generateThumbnail: async (path: string) => {
     try {
-      await queue.add('generateThumbnail', { path });
+      await queue.add('generateThumbnail', { path, format: 'webp', size: 'preview' }, {priority: 1});
+      await queue.add('generateThumbnail', { path, format: 'webp', size: 'full' }, {priority: 2});
+      await queue.add('generateThumbnail', { path, format: 'avif', size: 'preview' }, {priority: 3});
+      await queue.add('generateThumbnail', { path, format: 'avif', size: 'full' }, {priority: 4});
     } catch (e) {
       console.error(e);
     }
@@ -42,4 +48,3 @@ export const ServiceThumbnail = {
     }
   },
 };
-
