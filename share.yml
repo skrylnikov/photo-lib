@@ -2,8 +2,8 @@ services:
   share-web:
     container_name: share-web
     build:
-      context: ../../
-      dockerfile: ../../apps/share-web/Dockerfile
+      context: .
+      dockerfile: ./apps/share-web/Dockerfile
     restart: always
     ports:
       - 4000:8080
@@ -21,8 +21,8 @@ services:
   share-api:
     container_name: share-api
     build:
-      context: ../../
-      dockerfile: ../../apps/share-api/Dockerfile
+      context: .
+      dockerfile: ./apps/share-api/Dockerfile
     restart: always
     environment:
       - STORAGE_PATH=/mnt/images
@@ -44,8 +44,8 @@ services:
   prisma-migrate:
     container_name: prisma-migrate
     build:
-      context: ../../
-      dockerfile: ..////packages/database/Dockerfile
+      context: .
+      dockerfile: ./packages/database/Dockerfile
     restart: "no"
     environment:
       - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public

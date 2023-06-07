@@ -9,7 +9,7 @@
 Clone repo:
 ```bash
 git clone https://github.com/skrylnikov/photo-lib.git
-cd photo-lib/config/photo-lib-share
+cd photo-lib
 ```
 
 Create config file:
@@ -31,6 +31,6 @@ services:
 Up containers:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+docker compose -f share.yml -f share.prod.yml up --build -d
 ```
 
