@@ -1,4 +1,5 @@
-import { Queue, Worker } from 'bullmq';
+import { Worker } from 'node:worker_threads';
+import { Queue } from 'bullmq';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -17,11 +18,7 @@ export const ServiceThumbnail = {
   init: async () => {
     console.log('ServiceThumbnail init');
     try {
-      new Worker('service-thumbnail', resolve(dirname, './worker.js'), {
-        connection: reddis,
-        concurrency: 1,
-        useWorkerThreads: true,
-      });
+      new Worker(resolve(dirname, './worker.js'));
     } catch (e) {
       console.error(e);
     }

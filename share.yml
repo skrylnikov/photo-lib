@@ -40,7 +40,6 @@ services:
       prisma-migrate:
           condition: service_completed_successfully
 
-
   prisma-migrate:
     container_name: prisma-migrate
     build:

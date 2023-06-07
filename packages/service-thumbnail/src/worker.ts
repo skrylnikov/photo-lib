@@ -1,8 +1,8 @@
-import { SandboxedJob } from 'bullmq';
+import { Worker } from 'bullmq';
 import { prisma } from 'database';
 import sharp from 'sharp';
 import { resolve } from 'node:path';
-import { storagePath, cachePath } from 'config';
+import { storagePath, cachePath, reddis } from 'config';
 
 import { IDataType } from './types';
 
@@ -60,7 +60,7 @@ const buildThumbnail = async ({
   });
 };
 
-export default async (job: SandboxedJob<IDataType>) => {
+new Worker<IDataType>('service-thumbnail', async (job) => {
   try {
     console.log('Start processing job');
 
@@ -105,4 +105,7 @@ export default async (job: SandboxedJob<IDataType>) => {
   } catch (error) {
     console.error(error);
   }
-};
+}, {
+  connection: reddis,
+  concurrency: 1,
+});
