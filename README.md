@@ -25,7 +25,7 @@ services:
     environment:
       - TG_BOT_TOKEN=<telegram bot token>
     volumes:
-      - <path to folder or volume name>/sample:/mnt/images:ro
+      - <path to folder or volume name>:/mnt/images:rw
 ```
 
 Up containers:
