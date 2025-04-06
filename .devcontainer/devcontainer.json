@@ -1,0 +1,51 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "PhotoLib",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	// "image": "mcr.microsoft.com/devcontainers/base:noble",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+
+	"features": {
+		"ghcr.io/michidk/devcontainers-features/bun:1": {},
+		"ghcr.io/nikobockerman/devcontainer-features/fish-persistent-data:2": {},
+		"ghcr.io/devcontainers-extra/features/fish-apt-get:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"MS-CEINTL.vscode-language-pack-ru",
+				"Prisma.prisma",
+				"styled-components.vscode-styled-components",
+				"esbenp.prettier-vscode",
+				"eamodio.gitlens",
+				"dbaeumer.vscode-eslint",
+				"EditorConfig.EditorConfig"
+			]
+		}
+	},
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": ["s3:9001"],
+
+  "portsAttributes": {
+    "s3:9001": {
+      "label": "S3",
+      "onAutoForward": "silent"
+    }
+  }
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
+
