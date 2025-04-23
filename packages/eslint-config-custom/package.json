@@ -1,5 +1,5 @@
 {
-  "name": "eslint-config-custom",
+  "name": "@pl/eslint-config-custom",
   "version": "0.0.0",
   "private": true,
   "main": ".eslintrc.js",

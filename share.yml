@@ -1,58 +1,50 @@
 services:
-  share-web:
-    container_name: share-web
-    build:
-      context: .
-      dockerfile: ./apps/share-web/Dockerfile
-    restart: always
-    ports:
-      - 4000:8080
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      - DEBUG=true
-      - STATIC_ENABLED=true
-      - STATIC_RULES=
-        *,^/trpc/(.*),http://share-api:4001/trpc/$1;
-        *,^/storage/(.*),http://share-api:4001/storage/$1;
-    depends_on:
-      - share-api
+  # share-web:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/share-web/Dockerfile
+  #   restart: always
+  #   ports:
+  #     - 4000:8080
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   environment:
+  #     - DEBUG=true
+  #     - STATIC_ENABLED=true
+  #     - STATIC_RULES=
+  #       *,^/trpc/(.*),http://share-api:4001/trpc/$1;
+  #       *,^/storage/(.*),http://share-api:4001/storage/$1;
+  #   depends_on:
+  #     - share-api
 
-  share-api:
-    container_name: share-api
+  service-thumbnail:
     build:
       context: .
-      dockerfile: ./apps/share-api/Dockerfile
+      dockerfile: ./services/thumbnail/Dockerfile
     restart: always
     environment:
-      - STORAGE_PATH=/mnt/images
-      - CACHE_PATH=/mnt/cache
       - REDDIS_HOST=redis
       - REDDIS_PORT=6379
       - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
-    volumes:
-      - cache-thumbnails:/mnt/cache/thumbnails
     depends_on:
       db:
         condition: service_started
       redis:
         condition: service_started
-      prisma-migrate:
-          condition: service_completed_successfully
+      # prisma-migrate:
+          # condition: service_completed_successfully
 
-  prisma-migrate:
-    container_name: prisma-migrate
-    build:
-      context: .
-      dockerfile: ./packages/database/Dockerfile
-    restart: "no"
-    environment:
-      - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
-    depends_on:
-      - db
+  # prisma-migrate:
+  #   build:
+  #     context: .
+  #     dockerfile: ./packages/database/Dockerfile
+  #   restart: "no"
+  #   environment:
+  #     - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
+  #   depends_on:
+  #     - db
 
   db:
-    container_name: db
     image: postgres:15-alpine
     restart: always
     environment:
@@ -62,10 +54,8 @@ services:
       - ./config/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
 
   redis:
-    container_name: redis
     image: redis:7-alpine
     restart: always
 
 volumes:
   db-data: {}
-  cache-thumbnails: {}

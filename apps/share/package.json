@@ -1,0 +1,33 @@
+{
+  "name": "@pl/share",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "prepare": "panda codegen",
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start"
+  },
+  "dependencies": {
+    "@pl/database": "workspace:*",
+    "@tanstack/react-router": "^1.116.0",
+    "@tanstack/react-router-devtools": "^1.116.0",
+    "@tanstack/react-start": "^1.116.3",
+    "photo-flex-layout": "^1.0.0",
+    "photoswipe": "^5.4.4",
+    "postcss": "^8.5.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "use-resize-observer": "^9.1.0",
+    "vinxi": "0.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "typescript": "^5.8.3",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "packageManager": "bun@1.2.8"
+}

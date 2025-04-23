@@ -28,16 +28,13 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
 
-    # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
-
   redis:
-    # container_name: redis
     image: redis:7.4.2-alpine3.21
     restart: unless-stopped
 
   s3:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-04-03T14-56-28Z
+    command: server --console-address ":9001" /data
     restart: unless-stopped
     volumes:
       - minio-data:/data

@@ -1,5 +1,5 @@
 {
-  "name": "types",
+  "name": "@pl/types",
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",
@@ -8,8 +8,7 @@
     "lint:fix": "eslint --fix"
   },
   "devDependencies": {
-    "eslint-config-custom": "*",
-    "tsconfig": "*",
-    "share-api": "*"
+    "@pl/eslint-config-custom": "workspace:*",
+    "@pl/tsconfig": "workspace:*"
   }
 }

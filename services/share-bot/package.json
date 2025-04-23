@@ -1,0 +1,31 @@
+{
+  "name": "@pl/share-bot",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "bun ./src/index.ts",
+    "dev": "bun --watch ./src/index.ts",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
+  },
+  "type": "module",
+  "dependencies": {
+    "@pl/config": "workspace:*",
+    "@pl/database": "workspace:*",
+    "bullmq": "^5.49.2",
+    "exifr": "^7.1.3",
+    "grammy": "^1.36.1",
+    "nanoid": "^5.1.5",
+    "sharp": "0.33.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.8",
+    "@pl/tsconfig": "workspace:*",
+    "@pl/config": "workspace:*",
+    "@pl/database": "workspace:*",
+    "@pl/eslint-config-custom": "workspace:*"
+  },
+  "config": {
+    "libvips": "8.15.1"
+  }
+}

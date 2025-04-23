@@ -1,0 +1,34 @@
+{
+  "name": "@pl/thumbnail",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun ./src/index.ts",
+    "dev": "bun --watch ./src/index.ts",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "_install-deps": "SHARP_IGNORE_GLOBAL_LIBVIPS=0 bun install --build-from-source"
+  },
+  "trustedDependencies": [
+    "sharp"
+  ],
+  "dependencies": {
+    "@pl/config": "workspace:*",
+    "@pl/database": "workspace:*",
+    "@pl/types": "workspace:*",
+    "bullmq": "5.49.2",
+    "node-addon-api": "^8.3.1",
+    "node-gyp": "^11.2.0",
+    "sharp": "0.33.2"
+  },
+  "devDependencies": {
+    "@pl/eslint-config-custom": "workspace:*",
+    "@pl/tsconfig": "workspace:*"
+  },
+  "config": {
+    "libvips": {
+      "version": "8.15.1"
+    }
+  }
+}

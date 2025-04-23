@@ -7,6 +7,8 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
 
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
 	"features": {
 		"ghcr.io/michidk/devcontainers-features/bun:1": {},
 		"ghcr.io/nikobockerman/devcontainer-features/fish-persistent-data:2": {},

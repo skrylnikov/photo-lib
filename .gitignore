@@ -9,3 +9,7 @@ cache/**/*.avif
 .turbo
 dist
 *.prod.yml
+
+## Panda
+styled-system
+styled-system-studio

@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/react": "18.2.6",
-    "eslint-config-custom": "*",
-    "tsconfig": "*"
+    "@pl/eslint-config-custom": "workspace:*",
+    "@pl/tsconfig": "workspace:*"
   }
 }

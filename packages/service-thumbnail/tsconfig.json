@@ -1,5 +1,0 @@
-{
-  "extends": "tsconfig/node18.json",
-  "include": ["src/"],
-  "exclude": ["dist", "build", "node_modules"]
-}
