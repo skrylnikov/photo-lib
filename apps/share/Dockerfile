@@ -47,4 +47,4 @@ EXPOSE 4001
 
 
 
-CMD ["bun", "start"]
+CMD ["bun", "run", ".output/server/index.mjs"]
