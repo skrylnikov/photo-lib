@@ -1,6 +1,6 @@
 FROM ubuntu:noble-20250404 AS base
 
-RUN apt-get update && apt-get install -y curl unzip nodejs
+RUN apt-get update && apt-get install -y curl unzip nodejs adduser
 
 ENV BUN_INSTALL="$HOME/.bun"
 ENV PATH="$BUN_INSTALL/bin:$PATH"
