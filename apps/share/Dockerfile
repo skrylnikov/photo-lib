@@ -43,6 +43,7 @@ EXPOSE 4001
 WORKDIR /app/apps/share
 
 RUN bun run codegen
+RUN bun run build
 
 
 CMD ["bun", "start"]
