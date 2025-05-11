@@ -33,6 +33,10 @@ FROM installer AS runner
 WORKDIR /app
 
 COPY --from=installer /app .
+WORKDIR /app/apps/share
+
+RUN bun run codegen
+RUN bun run build
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
@@ -40,10 +44,7 @@ USER nodejs
 
 EXPOSE 4001
 
-WORKDIR /app/apps/share
 
-RUN bun run codegen
-RUN bun run build
 
 
 CMD ["bun", "start"]
