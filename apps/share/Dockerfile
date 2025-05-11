@@ -27,7 +27,6 @@ COPY turbo.json turbo.json
 ARG DATABASE_URL="postgresql://postgres:devpass@db:5432/postgres?schema=public"
 ENV DATABASE_URL=$DATABASE_URL
 
-RUN bun run codegen
 RUN prisma generate
 
 FROM installer AS runner
@@ -42,5 +41,8 @@ USER nodejs
 EXPOSE 4001
 
 WORKDIR /app/apps/share
+
+RUN bun run codegen
+
 
 CMD ["bun", "start"]
