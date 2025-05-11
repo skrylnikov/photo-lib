@@ -24,7 +24,7 @@
     "schema": "packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
-    "turbo": "^1.10.2",
+    "turbo": "^2.5.1",
     "typescript": "^5.8.3"
   },
   "packageManager": "bun@1.2.8",

@@ -11,24 +11,10 @@ RUN curl -fsSL https://bun.sh/install | bash && \
 FROM base AS builder
 WORKDIR /app
 COPY . .
-RUN turbo prune --scope=@pl/share-bot --docker
+RUN turbo prune --scope=@pl/share --docker
 
 FROM base AS installer
 WORKDIR /app
-
-# RUN apt-get update && apt-get install -y \
-#     pkg-config software-properties-common && \
-#     add-apt-repository -y ppa:ubuntuhandbook1/libheif && \
-#     apt-get install -y \
-#     libvips-dev \
-#     libheif-dev \
-#     libheif1 \
-#     heif-thumbnailer \
-#     libheif-plugin-libde265 \
-#     libheif-plugin-x265 \
-#     libheif-plugin-aomdec \
-#     libheif-plugin-aomenc \
-#     libheif-plugin-dav1d
 
 COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
@@ -54,6 +40,6 @@ USER nodejs
 
 EXPOSE 4001
 
-WORKDIR /app/services/share-bot
+WORKDIR /app/apps/share
 
 CMD ["bun", "start"]

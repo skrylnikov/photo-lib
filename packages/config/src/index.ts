@@ -9,9 +9,11 @@ export const storagePath = env.STORAGE_PATH || '';
 export const cachePath = env.CACHE_PATH || '';
 export const tgBotToken = env.TG_BOT_TOKEN || '';
 
+console.log('env', env);
+
 export const redis = {
   host: env.REDIS_HOST || 'localhost',
-  port: Number.parseInt(env.REDDIS_POST || '0', 10) || 6379,
+  port: Number.parseInt(env.REDIS_PORT || '0', 10) || 6379,
 };
 
 export const s3 = {

@@ -7,6 +7,9 @@ import { prisma } from '@pl/database';
 import { redis, s3 } from '@pl/config';
 import type { ServiceThumbnail } from '@pl/types';
 
+console.log('redis', redis);
+console.log('s3', s3);
+
 const clientS3 = new S3Client(s3);
 
 const formatQualityMap = {

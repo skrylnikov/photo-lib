@@ -17,45 +17,76 @@ services:
   #   depends_on:
   #     - share-api
 
+  share:
+    build:
+      context: .
+      dockerfile: ./apps/share/Dockerfile
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres?schema=public
+    depends_on:
+      db:
+        condition: service_started
+      prisma-migrate:
+          condition: service_completed_successfully
+
   service-thumbnail:
     build:
       context: .
       dockerfile: ./services/thumbnail/Dockerfile
     restart: always
     environment:
-      - REDDIS_HOST=redis
-      - REDDIS_PORT=6379
-      - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres?schema=public
     depends_on:
       db:
         condition: service_started
       redis:
         condition: service_started
-      # prisma-migrate:
-          # condition: service_completed_successfully
+      prisma-migrate:
+          condition: service_completed_successfully
 
-  # prisma-migrate:
-  #   build:
-  #     context: .
-  #     dockerfile: ./packages/database/Dockerfile
-  #   restart: "no"
-  #   environment:
-  #     - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
-  #   depends_on:
-  #     - db
-
-  db:
-    image: postgres:15-alpine
+  service-share-bot:
+    build:
+      context: .
+      dockerfile: ./services/share-bot/Dockerfile
     restart: always
     environment:
-      - POSTGRES_PASSWORD=devpass
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres?schema=public
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      prisma-migrate:
+          condition: service_completed_successfully
+
+  prisma-migrate:
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile
+    restart: "no"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres?schema=public
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17.4-alpine3.21
+    restart: unless-stopped
     volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./config/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
 
   redis:
     image: redis:7-alpine
     restart: always
 
 volumes:
-  db-data: {}
+  postgres-data: {}
