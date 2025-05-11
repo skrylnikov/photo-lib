@@ -28,6 +28,7 @@ ARG DATABASE_URL="postgresql://postgres:devpass@db:5432/postgres?schema=public"
 ENV DATABASE_URL=$DATABASE_URL
 
 RUN bun run codegen
+RUN prisma generate
 
 FROM installer AS runner
 WORKDIR /app
