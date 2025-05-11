@@ -1,22 +1,4 @@
 services:
-  # share-web:
-  #   build:
-  #     context: .
-  #     dockerfile: ./apps/share-web/Dockerfile
-  #   restart: always
-  #   ports:
-  #     - 4000:8080
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #   environment:
-  #     - DEBUG=true
-  #     - STATIC_ENABLED=true
-  #     - STATIC_RULES=
-  #       *,^/trpc/(.*),http://share-api:4001/trpc/$1;
-  #       *,^/storage/(.*),http://share-api:4001/storage/$1;
-  #   depends_on:
-  #     - share-api
-
   share:
     build:
       context: .
