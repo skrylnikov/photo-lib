@@ -13,6 +13,8 @@ interface IProps {
   onClick: (id: string) => void;
 }
 
+const ENDPOINT = (process.env.PUBLIC_S3_ENDPOINT ?? '/s3') + `/${process.env.S3_BUCKET}/`
+
 export const Card = ({ data, box, i, onClick }: IProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLAnchorElement>(null);
@@ -88,22 +90,22 @@ export const Card = ({ data, box, i, onClick }: IProps) => {
         data-visible={isVisible}
         target="_blank"
         rel="noreferrer"
-        href={`/s3/photo-lib-share/${full.path}`}
+        href={ENDPOINT + full.path}
         data-id={data.id}
         data-pswp-width={full.width}
         data-pswp-height={full.height}
-        data-pswp-webp-src={fullWebp ? `/s3/photo-lib-share/${fullWebp.path}` : undefined}
-        data-pswp-avif-src={fullAvif ? `/s3/photo-lib-share/${fullAvif.path}` : undefined}
-        data-pswp-heic-src={fullHeic ? `/s3/photo-lib-share/${fullHeic.path}` : undefined}
-        data-pswp-jxl-src={fullJXL ? `/s3/photo-lib-share/${fullJXL.path}` : undefined}
+        data-pswp-webp-src={fullWebp ? ENDPOINT + fullWebp.path : undefined}
+        data-pswp-avif-src={fullAvif ? ENDPOINT + fullAvif.path : undefined}
+        data-pswp-heic-src={fullHeic ? ENDPOINT + fullHeic.path : undefined}
+        data-pswp-jxl-src={fullJXL ? ENDPOINT + fullJXL.path : undefined}
       >
         <picture >
-          {previewJXL && <source srcSet={`/s3/photo-lib-share/${previewJXL.path}`} type="image/jxl" />}
-          {previewHeic && <source srcSet={`/s3/photo-lib-share/${previewHeic.path}`} type="image/heif" />}
-          {previewAvif && <source srcSet={`/s3/photo-lib-share/${previewAvif.path}`} type="image/avif" />}
-          {previewWebp && <source srcSet={`/s3/photo-lib-share/${previewWebp.path}`} type="image/webp" />}
+          {previewJXL && <source srcSet={ENDPOINT + previewJXL.path} type="image/jxl" />}
+          {previewHeic && <source srcSet={ENDPOINT + previewHeic.path} type="image/heif" />}
+          {previewAvif && <source srcSet={ENDPOINT + previewAvif.path} type="image/avif" />}
+          {previewWebp && <source srcSet={ENDPOINT + previewWebp.path} type="image/webp" />}
           <img
-            src={`/s3/photo-lib-share/${original.path}`}
+            src={ENDPOINT + original.path}
             loading="lazy"
             height={height}
             width={width}
