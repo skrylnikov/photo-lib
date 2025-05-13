@@ -7,6 +7,8 @@ import {
 } from '@tanstack/react-router'
 
 import css from "../index.css?url"
+import pswpCss from "photoswipe/style.css?url"
+
 
 
 export const Route = createRootRoute({
@@ -27,6 +29,10 @@ export const Route = createRootRoute({
       {
         rel: "stylesheet",
         href: css,
+      },
+      {
+        rel: "stylesheet",
+        href: pswpCss,
       },
     ],
   }),
