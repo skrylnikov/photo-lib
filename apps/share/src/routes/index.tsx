@@ -4,7 +4,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { photoFlexLayout } from "photo-flex-layout";
 import useResizeObserver from "use-resize-observer";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
-// import type {P} from 'photoswipe'
 import "photoswipe/style.css";
 
 import { css } from "../../styled-system/css";
@@ -13,6 +12,9 @@ import { prisma } from "@pl/database";
 import { useEffect, useMemo, useRef } from "react";
 
 import { Card } from "../entities/card";
+
+const s3Endpoint =
+  (process.env.PUBLIC_S3_ENDPOINT ?? "/s3") + `/${process.env.S3_BUCKET}/`;
 
 const getPhotoList = createServerFn().handler(async () => {
   const list = await prisma.image.findMany({
@@ -31,8 +33,14 @@ const getPhotoList = createServerFn().handler(async () => {
       id: item.id,
       filename: item.filename,
       date: item.date,
-      thumbnail: item.Thumbnail,
-      files: item.files,
+      thumbnail: item.Thumbnail?.map((x) => ({
+        ...x,
+        path: s3Endpoint + x.path,
+      })),
+      files: item.files?.map((x) => ({
+        ...x,
+        path: s3Endpoint + x.path,
+      })),
     }));
 });
 
@@ -128,10 +136,11 @@ function Home() {
         // Infer type from src or assume jpeg/png as common fallbacks
         // For simplicity, assuming JPEG here. You might need more robust logic
         // if your original images aren't always JPEG.
-        const fallbackType = content.data.src.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        const fallbackType = content.data.src.endsWith(".png")
+          ? "image/png"
+          : "image/jpeg";
         sourceFallback.type = fallbackType;
         content.pictureElement.appendChild(sourceFallback);
-
 
         // Create the <img> element as the final fallback and for dimensions
         content.element = document.createElement("img");

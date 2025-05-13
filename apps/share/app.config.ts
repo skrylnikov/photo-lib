@@ -16,6 +16,7 @@ export default defineConfig({
   },
   server: {
     preset: 'bun',
+    compatibilityDate: '2025-01-30',
     devProxy: {
       '/s3': {
         target: 'http://s3:9000',

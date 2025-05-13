@@ -3,7 +3,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { ILayoutBox } from 'photo-flex-layout';
 import { css } from "styled-system/css";
-import { createServerFn } from "@tanstack/react-start";
 
 
 interface IProps {
@@ -13,11 +12,6 @@ interface IProps {
   onClick: (id: string) => void;
 }
 
-const getS3Endpoint = createServerFn({ }).handler(() => {
-  return (process.env.PUBLIC_S3_ENDPOINT ?? '/s3') + `/${process.env.S3_BUCKET}/`
-})
-
-const ENDPOINT = await getS3Endpoint()
 
 export const Card = ({ data, box, i, onClick }: IProps) => {
 
@@ -95,22 +89,22 @@ export const Card = ({ data, box, i, onClick }: IProps) => {
         data-visible={isVisible}
         target="_blank"
         rel="noreferrer"
-        href={ENDPOINT + full.path}
+        href={full.path}
         data-id={data.id}
         data-pswp-width={full.width}
         data-pswp-height={full.height}
-        data-pswp-webp-src={fullWebp ? ENDPOINT + fullWebp.path : undefined}
-        data-pswp-avif-src={fullAvif ? ENDPOINT + fullAvif.path : undefined}
-        data-pswp-heic-src={fullHeic ? ENDPOINT + fullHeic.path : undefined}
-        data-pswp-jxl-src={fullJXL ? ENDPOINT + fullJXL.path : undefined}
+        data-pswp-webp-src={fullWebp ? fullWebp.path : undefined}
+        data-pswp-avif-src={fullAvif ? fullAvif.path : undefined}
+        data-pswp-heic-src={fullHeic ? fullHeic.path : undefined}
+        data-pswp-jxl-src={fullJXL ? fullJXL.path : undefined}
       >
         <picture >
-          {previewJXL && <source srcSet={ENDPOINT + previewJXL.path} type="image/jxl" />}
-          {previewHeic && <source srcSet={ENDPOINT + previewHeic.path} type="image/heif" />}
-          {previewAvif && <source srcSet={ENDPOINT + previewAvif.path} type="image/avif" />}
-          {previewWebp && <source srcSet={ENDPOINT + previewWebp.path} type="image/webp" />}
+          {previewJXL && <source srcSet={previewJXL.path} type="image/jxl" />}
+          {previewHeic && <source srcSet={previewHeic.path} type="image/heif" />}
+          {previewAvif && <source srcSet={previewAvif.path} type="image/avif" />}
+          {previewWebp && <source srcSet={previewWebp.path} type="image/webp" />}
           <img
-            src={ENDPOINT + original.path}
+            src={original.path}
             loading="lazy"
             height={height}
             width={width}
