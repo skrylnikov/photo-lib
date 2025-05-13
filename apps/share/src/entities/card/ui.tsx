@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { ILayoutBox } from 'photo-flex-layout';
-import { Image as IImage } from '@pl/database';
 import { css } from "styled-system/css";
+import { createServerFn } from "@tanstack/react-start";
 
 
 interface IProps {
@@ -13,9 +13,14 @@ interface IProps {
   onClick: (id: string) => void;
 }
 
-const ENDPOINT = (process.env.PUBLIC_S3_ENDPOINT ?? '/s3') + `/${process.env.S3_BUCKET}/`
+const getS3Endpoint = createServerFn({ }).handler(() => {
+  return (process.env.PUBLIC_S3_ENDPOINT ?? '/s3') + `/${process.env.S3_BUCKET}/`
+})
+
+const ENDPOINT = await getS3Endpoint()
 
 export const Card = ({ data, box, i, onClick }: IProps) => {
+
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLAnchorElement>(null);
 
