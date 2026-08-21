@@ -1,12 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
-  "globalDotEnv": [".env"],
   "globalEnv": ["NODE_ENV"],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "src/dist/**"]
     },
     "dev": {
       "cache": false,
@@ -25,6 +24,7 @@
       "cache": false
     },
     "lint": {},
-    "lint:fix": {}
+    "lint:fix": {},
+    "typecheck": {}
   }
 }

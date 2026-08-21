@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedOrigins": ["https://photos.example.com"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["Content-Type", "x-amz-content-sha256", "x-amz-date"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 300
+  }
+]

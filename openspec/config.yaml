@@ -1,0 +1,42 @@
+schema: spec-driven
+
+# Language: all planning artifacts are written in Russian.
+context: |
+  Language: Russian / Язык: русский.
+  All planning artifacts (proposal.md, specs/**, design.md, tasks.md) must be written in Russian.
+  Все артефакты планирования пишутся на русском языке.
+  Do NOT translate: shell commands, file paths, package names, dependency versions, and code identifiers.
+  Не переводите: shell-команды, пути к файлам, имена пакетов, версии зависимостей и идентификаторы кода.
+  In spec files keep RFC 2119 keywords (SHALL, MUST) and the standard requirement format in English.
+  В файлах specs сохраняйте ключевые слова RFC 2119 (SHALL, MUST) и стандартный формат требований на английском.
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

@@ -1,3 +1,7 @@
 node_modules
 cache
 dist
+test-fixtures/heic/*.HEIC
+test-fixtures/heic/*.heic
+!test-fixtures/heic/tiled-6x8.heic
+!test-fixtures/heic/tiled-17x16-over-budget.heic

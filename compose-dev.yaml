@@ -1,20 +1,52 @@
 services:
-  db:
-    image: postgres:15-alpine
+  share-api:
+    image: photo-lib-api-jxl-build
+    build:
+      context: .
+      dockerfile: ./apps/share-api/Dockerfile
+      target: build
+    command: ["sh", "-c", "pnpm --filter database db:migrate:deploy && exec pnpm --filter share-api start"]
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=4001
+      - DATABASE_URL=file:/var/lib/photo-library/photo-library.db
+      - SQLITE_BUSY_TIMEOUT_MS=5000
+      - RUSTFS_ENDPOINT=http://host.docker.internal:9000/photo-library
+      - RUSTFS_PUBLIC_ENDPOINT=http://localhost:9000/photo-library
+      - RUSTFS_REGION=us-east-1
+      - RUSTFS_BUCKET=photo-library
+      - RUSTFS_ACCESS_KEY_ID=devaccess
+      - RUSTFS_SECRET_ACCESS_KEY=devsecret
+      - RUSTFS_PRESIGN_SECONDS=300
+      - OIDC_COOKIE_SECURE=false
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 4001:4001
+    volumes:
+      - ./apps/share-api/data:/var/lib/photo-library
+      - share-api-cache:/app/data/cache
+      - share-api-tmp:/app/data/tmp
+    depends_on:
+      rustfs:
+        condition: service_started
+
+  rustfs:
+    image: rustfs/rustfs:latest
     restart: always
     environment:
-      - POSTGRES_PASSWORD=devpass
+      - RUSTFS_ACCESS_KEY=devaccess
+      - RUSTFS_SECRET_KEY=devsecret
+      - RUSTFS_CORS_ALLOWED_ORIGINS=*
     ports:
-      - 5432:5432
+      - 9000:9000
+      - 9001:9001
     volumes:
-      - db-data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    restart: always
-    ports:
-      - 6379:6379
+      - rustfs-data:/data
 
 
 volumes:
-  db-data: {}
+  share-api-cache: {}
+  share-api-tmp: {}
+  rustfs-data: {}

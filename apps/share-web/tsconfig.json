@@ -5,9 +5,9 @@
     "./vite.config.ts"
   ],
   "compilerOptions": {
-    "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "exclude": ["dist", "build", "node_modules"]

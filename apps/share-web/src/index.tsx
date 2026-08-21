@@ -1,12 +1,15 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { attachLogger } from 'effector-logger';
+import '@mantine/core/styles.css';
 
 import { App } from './app';
 
-attachLogger();
+const rootElement = document.querySelector('#root');
+if (!rootElement) {
+  throw new Error('Root element was not found');
+}
 
-const root = createRoot(document.querySelector('#root')!);
+const root = createRoot(rootElement);
 
 root.render(
   <React.StrictMode>

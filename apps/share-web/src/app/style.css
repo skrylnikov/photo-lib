@@ -6,6 +6,14 @@
     url("/fonts/Raleway-VF.woff2") format("woff2"),
     url("/fonts/Raleway-VF.woff") format("woff");
 }
+
+@font-face {
+  font-family: "Film Hand";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Bradley Hand"), local("Chalkboard"), local("Segoe Print");
+}
 @font-face {
   font-family: "Raleway";
   font-style: italic;
@@ -16,10 +24,17 @@
 }
 
 body {
-  font-family: "Raleway", sans-serif;
+  font-family: "Raleway", system-ui, sans-serif;
   margin: 0;
 }
 
 button {
-  font-family: "Raleway", sans-serif;
+  font-family: "Raleway", system-ui, sans-serif;
+}
+
+/* Film labels use a locally installed handwritten face when available. The
+   stack intentionally falls back to platform cursive fonts and never loads a
+   remote runtime asset. */
+.film-label {
+  font-family: "Film Hand", "Bradley Hand", "Chalkboard", "Segoe Print", cursive;
 }

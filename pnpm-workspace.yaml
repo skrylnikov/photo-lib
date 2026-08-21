@@ -1,0 +1,18 @@
+packages:
+  - apps/share-api
+  - apps/share-web
+  - packages/config
+  - packages/database
+  - packages/tsconfig
+  - packages/types
+
+overrides:
+  '@babel/core': 7.29.7
+
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  better-sqlite3: true
+  esbuild: true
+  prisma: true
+  sharp: true

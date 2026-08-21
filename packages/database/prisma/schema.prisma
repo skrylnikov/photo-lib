@@ -1,95 +1,164 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
 }
 
 generator client {
   provider = "prisma-client-js"
+  output   = "./generated/client"
 }
 
-model Image {
-  id       String   @id @default(cuid())
-  filename String
-  date     DateTime
+model Album {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  description String?
+  published   Boolean      @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  media       AlbumMedia[]
 
-  exif         Json?
-
-  camera       String?
-  exposureTime Float?
-  iso          Int?
-  aperture     Float?
-  lens         String?
-  lat          Float?
-  lng          Float?
-
-  Vibrant      String?
-  Muted        String?
-  DarkVibrant  String?
-  DarkMuted    String?
-  LightVibrant String?
-  LightMuted   String?
-
-  files     File[]
-  Thumbnail Thumbnail[]
+  @@index([published, updatedAt])
 }
 
-enum FileType {
-  Image
-  Video
-  Metadata
-  Raw
-  Screenshot
-  Unknown
+model MediaAsset {
+  id             String       @id @default(cuid())
+  originalKey    String       @unique
+  originalName   String
+  originalMime   String
+  originalBytes  Int
+  width          Int
+  height         Int
+  status         MediaStatus  @default(pending)
+  safeError      String?
+  createdBy      String
+  createdAt      DateTime     @default(now())
+  capturedAt     DateTime?
+  updatedAt      DateTime     @updatedAt
+  albumLinks     AlbumMedia[]
+  derivatives    Derivative[]
+  uploadIntent   UploadIntent?
+  jobs           MediaJob[]
+
+  @@index([status, createdAt])
+  @@index([capturedAt])
 }
 
-model File {
-  id        String   @id @default(cuid())
-  path      String   @unique
-  type      FileType
-  extension String
-  date      DateTime
-  primary   Boolean
+model AlbumMedia {
+  albumId   String
+  mediaId   String
+  position  Int
+  featured  Boolean    @default(false)
+  album     Album      @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
-  width  Int
-  height Int
-
-  rotate Float?
-  scaleX Float?
-  scaleY Float?
-
-  Image   Image?  @relation(fields: [imageId], references: [id])
-  imageId String?
+  @@id([albumId, mediaId])
+  @@unique([albumId, position])
+  @@index([albumId, featured, position])
 }
 
-enum ThumbnailSize {
-  preview
-  full
+model Derivative {
+  id         String            @id @default(cuid())
+  mediaId    String
+  format     DerivativeFormat
+  width      Int
+  height     Int
+  version    String
+  objectKey  String            @unique
+  bytes      Int
+  createdAt  DateTime          @default(now())
+  media      MediaAsset        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
-  //DEPCRECATED
-  x1
-  x2
-  uhd
-  hd
+  @@unique([mediaId, format, width, version])
+  @@index([mediaId, format, width])
 }
 
-enum ThumbnailFormat {
-  jpeg
-  webp
+model UploadIntent {
+  id             String             @id @default(cuid())
+  mediaId        String?            @unique
+  objectKey      String             @unique
+  originalName   String
+  expectedMime   String
+  expectedBytes  Int
+  status         UploadIntentStatus @default(pending)
+  targetAlbumId  String?
+  assignmentStatus AssignmentStatus @default(not_requested)
+  assignmentError String?
+  expiresAt      DateTime
+  completedAt    DateTime?
+  createdBy      String
+  createdAt      DateTime           @default(now())
+  media          MediaAsset?        @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@index([targetAlbumId, assignmentStatus])
+}
+
+model MediaJob {
+  id             String        @id @default(cuid())
+  mediaId        String
+  kind           String
+  status         MediaJobStatus @default(pending)
+  attempts       Int           @default(0)
+  maxAttempts    Int           @default(3)
+  availableAt    DateTime      @default(now())
+  leaseExpiresAt DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  safeError      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  media          MediaAsset    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaId, kind])
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+}
+
+model AdminSession {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  subject    String
+  groupsJson String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  @@index([expiresAt, revokedAt])
+}
+
+enum MediaStatus {
+  pending
+  processing
+  ready
+  failed
+}
+
+enum UploadIntentStatus {
+  pending
+  completed
+  expired
+  failed
+}
+
+enum AssignmentStatus {
+  not_requested
+  pending
+  added
+  unavailable
+}
+
+enum MediaJobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum DerivativeFormat {
+  jxl
   avif
-}
-
-model Thumbnail {
-  id     String        @id @default(cuid())
-  path   String        @unique
-  format String
-  size   ThumbnailSize
-  
-  width  Int
-  height Int
-
-  Image   Image?  @relation(fields: [imageId], references: [id])
-  imageId String?
+  heic
+  webp
+  jpeg
 }

@@ -1,6 +1,6 @@
 # Photo lib
 
-## Photo lib share
+## Photo library
 
 [Demo](https://dskr.photos/)
 
@@ -12,25 +12,17 @@ git clone https://github.com/skrylnikov/photo-lib.git
 cd photo-lib
 ```
 
-Create config file:
+Create a private deployment override from `example.env` and configure Pocket ID
+and RustFS credentials. SQLite metadata lives in a persistent volume; cache and
+temporary media volumes are disposable.
 
 ```bash
 nano share.prod.yml
 ```
 
 
-```yaml
-services:
-  share-api:
-    environment:
-      - TG_BOT_TOKEN=<telegram bot token>
-    volumes:
-      - <path to folder or volume name>:/mnt/images:rw
-```
-
 Up containers:
 
 ```bash
 docker compose -f share.yml -f share.prod.yml up --build -d
 ```
-

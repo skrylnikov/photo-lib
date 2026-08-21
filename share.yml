@@ -7,14 +7,9 @@ services:
     restart: always
     ports:
       - 4000:8080
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - DEBUG=true
       - STATIC_ENABLED=true
-      - STATIC_RULES=
-        *,^/trpc/(.*),http://share-api:4001/trpc/$1;
-        *,^/storage/(.*),http://share-api:4001/storage/$1;
+      - STATIC_RULES=*,^/trpc/(.*),http://share-api:4001/trpc/$1;*,^/media/(.*),http://share-api:4001/media/$1;*,^/auth/(.*),http://share-api:4001/auth/$1
     depends_on:
       - share-api
 
@@ -25,47 +20,43 @@ services:
       dockerfile: ./apps/share-api/Dockerfile
     restart: always
     environment:
-      - STORAGE_PATH=/mnt/images
-      - CACHE_PATH=/mnt/cache
-      - REDDIS_HOST=redis
-      - REDDIS_PORT=6379
-      - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
+      - NODE_ENV=production
+      - PORT=4001
+      - DATABASE_URL=file:/var/lib/photo-library/photo-library.db
+      - SQLITE_BUSY_TIMEOUT_MS=5000
+      - RUSTFS_ENDPOINT=${RUSTFS_ENDPOINT}
+      - RUSTFS_REGION=us-east-1
+      - RUSTFS_BUCKET=photo-library
+      - RUSTFS_ACCESS_KEY_ID=${RUSTFS_ACCESS_KEY_ID}
+      - RUSTFS_SECRET_ACCESS_KEY=${RUSTFS_SECRET_ACCESS_KEY}
+      - RUSTFS_PRESIGN_SECONDS=${RUSTFS_PRESIGN_SECONDS:-300}
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - OIDC_REDIRECT_URI=${OIDC_REDIRECT_URI}
+      - OIDC_ALLOWED_SUBJECTS=${OIDC_ALLOWED_SUBJECTS}
+      - OIDC_ALLOWED_GROUPS=${OIDC_ALLOWED_GROUPS}
+      - OIDC_COOKIE_SECURE=true
     volumes:
-      - cache-thumbnails:/mnt/cache/thumbnails
+      - photo-library-db:/var/lib/photo-library
+      - photo-library-cache:/app/data/cache
+      - photo-library-tmp:/app/data/tmp
     depends_on:
-      db:
+      rustfs:
         condition: service_started
-      redis:
-        condition: service_started
-      prisma-migrate:
-          condition: service_completed_successfully
 
-  prisma-migrate:
-    container_name: prisma-migrate
-    build:
-      context: .
-      dockerfile: ./packages/database/Dockerfile
-    restart: "no"
-    environment:
-      - DATABASE_URL=postgresql://postgres:devpass@db:5432/postgres?schema=public
-    depends_on:
-      - db
-
-  db:
-    container_name: db
-    image: postgres:15-alpine
+  rustfs:
+    container_name: rustfs
+    image: rustfs/rustfs:latest
     restart: always
     environment:
-      - POSTGRES_PASSWORD=devpass
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY_ID}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_ACCESS_KEY}
     volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./config/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
-
-  redis:
-    container_name: redis
-    image: redis:7-alpine
-    restart: always
+      - rustfs-data:/data
 
 volumes:
-  db-data: {}
-  cache-thumbnails: {}
+  photo-library-db: {}
+  photo-library-cache: {}
+  photo-library-tmp: {}
+  rustfs-data: {}

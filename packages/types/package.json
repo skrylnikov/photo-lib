@@ -4,12 +4,13 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
-    "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "eslint-config-custom": "*",
-    "tsconfig": "*",
-    "share-api": "*"
+    "@trpc/server": "11.18.0",
+    "tsconfig": "workspace:*",
+    "share-api": "workspace:*"
   }
 }

@@ -1,9 +1,11 @@
 import { router } from '../trpc';
- 
-import { imageRouter } from './image';
- 
+
+import { adminRouter } from './admin';
+import { publicRouter } from './public';
+
 export const appRouter = router({
-  image: imageRouter,
+  public: publicRouter,
+  admin: adminRouter,
 });
- 
+
 export type AppRouter = typeof appRouter;

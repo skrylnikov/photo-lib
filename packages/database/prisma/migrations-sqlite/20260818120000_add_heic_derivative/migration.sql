@@ -1,0 +1,2 @@
+-- SQLite stores Prisma enums as TEXT. HEIC is an application-level enum addition,
+-- so no table alteration is required for this migration.

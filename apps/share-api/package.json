@@ -6,30 +6,34 @@
     "build": "tsup ./src/index.ts --format esm",
     "start": "tsx ./src/index.ts",
     "dev": "tsx watch ./src/index.ts",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/auth/security.test.ts src/media/assignment-state.test.ts src/media/codec-runtime.test.ts src/media/custom-runtime.test.ts src/media/formats.test.ts src/media/heif-container.test.ts src/media/job-state.test.ts src/routes/publication.test.ts src/routers/admin-contract.test.ts src/routers/public.test.ts",
+    "test:storage": "tsx --test src/storage/object-store.test.ts",
+    "check:codecs": "tsx src/media/check-codecs.ts",
+    "oracle:heic": "tsx src/media/manual-heic-oracle.ts",
+    "import:legacy": "tsx src/import/legacy-originals.ts"
   },
   "type": "module",
   "dependencies": {
-    "@fastify/static": "^6.10.2",
-    "@trpc/server": "^10.29.0",
-    "config": "*",
-    "database": "*",
-    "dotenv": "16.0.3",
+    "@fastify/cookie": "11.1.2",
+    "@fastify/multipart": "10.1.1",
+    "@trpc/server": "11.18.0",
+    "config": "workspace:*",
+    "database": "workspace:*",
+    "dotenv": "17.4.2",
     "exifr": "7.1.3",
-    "fastify": "^4.17.0",
-    "grammy": "^1.16.1",
-    "remeda": "1.18.0",
-    "service-thumbnail": "*",
-    "sharp": "^0.32.1",
-    "sharp-vibrant": "0.4.0",
-    "undici": "^5.22.1",
-    "zod": "^3.21.4"
+    "fastify": "5.12.0",
+    "jose": "6.2.9",
+    "s3mini": "1.0.0",
+    "sharp": "0.35.3",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "eslint-config-custom": "*",
-    "tsconfig": "*",
-    "tsup": "^6.7.0",
-    "tsx": "3.12.7"
+    "node-gyp": "12.4.0",
+    "tsconfig": "workspace:*",
+    "tsup": "8.5.1",
+    "tsx": "4.23.12"
   }
 }

@@ -1,8 +1,1 @@
-import { indexStorage } from "./index-storage";
-
-export { indexStorage } from "./index-storage";
-export { reindexStorage } from './index-storage';
-
-export const launch = () => {
-  void indexStorage();
-};
+export { recoverJobs, startJobRunner as launch } from '../media/job-runner';

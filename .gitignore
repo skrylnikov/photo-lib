@@ -6,6 +6,12 @@ cache/**/*.db
 cache/**/*.jpg
 cache/**/*.webp
 cache/**/*.avif
+test-fixtures/heic/*.HEIC
+test-fixtures/heic/*.heic
+!test-fixtures/heic/tiled-6x8.heic
+!test-fixtures/heic/tiled-17x16-over-budget.heic
+test-fixtures/heic/*-source.png
 .turbo
 dist
+packages/database/prisma/generated/
 *.prod.yml

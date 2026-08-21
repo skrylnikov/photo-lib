@@ -1,32 +1,23 @@
-import React from "react";
-import { useUnit } from 'effector-react';
+import { MantineProvider } from '@mantine/core';
+import { useEffect, useState } from 'react';
 
-import { photoModel } from '@/entities/photo';
-import { Home } from '@/pages/home';
-import { Full } from 'ui';
-
-import './style.css';
-
-photoModel.loadPhotoFx().catch((e) => console.error(e));
+import { appShell } from './style.css.ts';
+import { Home } from '../pages/home';
+import { AlbumPage } from '../pages/album';
+import { AdminPage } from '../pages/admin';
 
 export const App = () => {
-  const fullPhoto = useUnit(photoModel.$fullPhoto);
-
-  if (fullPhoto) {
-    return (
-      <Full
-        photo={fullPhoto}
-        onNext={photoModel.nextFull}
-        onPrev={photoModel.prevFull}
-        close={photoModel.closeFull}
-      />
-    );
-  }
-
-  return (
-    <Home/>
-  );
+  const [path, setPath] = useState(window.location.pathname);
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+  const navigate = (next: string) => { window.history.pushState({}, '', next); setPath(next); };
+  const content = path === '/admin'
+    ? <AdminPage navigate={navigate} />
+    : path.startsWith('/album/')
+      ? <AlbumPage slug={decodeURIComponent(path.slice('/album/'.length))} navigate={navigate} />
+      : <Home navigate={navigate} />;
+  return <MantineProvider><main className={appShell}>{content}</main></MantineProvider>;
 };
-
-
-

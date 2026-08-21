@@ -1,9 +1,12 @@
-import { inferAsyncReturnType } from '@trpc/server';
 import { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
 
-export function createContext({ req, res }: CreateFastifyContextOptions) {
-  const user = { name: req.headers.username ?? 'anonymous' };
-  return { req, res, user };
+import { appConfig } from 'config';
+import { readSession } from './auth/session';
+
+export async function createContext({ req, res }: CreateFastifyContextOptions) {
+  const cookies = (req as unknown as { cookies?: Record<string, string | undefined> }).cookies;
+  const session = await readSession(cookies?.[appConfig.oidc.cookieName]);
+  return { req, res, session };
 }
 
-export type Context = inferAsyncReturnType<typeof createContext>;
+export type Context = Awaited<ReturnType<typeof createContext>>;
