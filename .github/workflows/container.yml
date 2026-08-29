@@ -22,6 +22,7 @@ jobs:
           node-version: 24.13.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm generate
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm --filter share-api test
