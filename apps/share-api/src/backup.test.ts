@@ -3,7 +3,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { DatabaseSync } from 'node:sqlite';
+
+import Database from 'better-sqlite3';
 
 import type { ObjectStore } from './storage/object-store';
 import { backupSqlite } from './backup';
@@ -12,7 +13,7 @@ test('uploads a valid SQLite snapshot and removes only expired backups', async (
   const directory = await mkdtemp(join(tmpdir(), 'photo-library-backup-test-'));
   const databasePath = join(directory, 'source.db');
   const temporaryPath = join(directory, 'tmp');
-  const source = new DatabaseSync(databasePath);
+  const source = new Database(databasePath);
   source.exec('CREATE TABLE photos (id TEXT PRIMARY KEY); INSERT INTO photos VALUES (\'photo-1\')');
   source.close();
 
@@ -41,9 +42,10 @@ test('uploads a valid SQLite snapshot and removes only expired backups', async (
 
     const restoredPath = join(directory, 'restored.db');
     await writeFile(restoredPath, uploaded);
-    const restored = new DatabaseSync(restoredPath, { readOnly: true });
-    assert.equal(restored.prepare('PRAGMA quick_check').get()?.quick_check, 'ok');
-    assert.equal(restored.prepare('SELECT id FROM photos').get()?.id, 'photo-1');
+    const restored = new Database(restoredPath, { readonly: true, fileMustExist: true });
+    assert.equal(restored.pragma('quick_check', { simple: true }), 'ok');
+    const photo = restored.prepare('SELECT id FROM photos').get() as { id: string } | undefined;
+    assert.equal(photo?.id, 'photo-1');
     restored.close();
   } finally {
     await rm(directory, { recursive: true, force: true });

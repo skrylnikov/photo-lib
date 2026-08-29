@@ -3,7 +3,8 @@ import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Readable } from 'node:stream';
-import { backup, DatabaseSync } from 'node:sqlite';
+
+import Database from 'better-sqlite3';
 
 import { appConfig } from 'config';
 
@@ -28,14 +29,13 @@ export const backupSqlite = async ({
   await mkdir(temporaryPath, { recursive: true });
   const directory = await mkdtemp(join(temporaryPath, 'sqlite-backup-'));
   const destination = join(directory, 'photo-library.db');
-  const source = new DatabaseSync(databasePath, { readOnly: true });
+  const source = new Database(databasePath, { readonly: true, fileMustExist: true });
 
   try {
-    await backup(source, destination);
-    const snapshot = new DatabaseSync(destination, { readOnly: true });
+    await source.backup(destination);
+    const snapshot = new Database(destination, { readonly: true, fileMustExist: true });
     try {
-      const result = snapshot.prepare('PRAGMA quick_check').get() as { quick_check?: unknown };
-      if (result.quick_check !== 'ok') {
+      if (snapshot.pragma('quick_check', { simple: true }) !== 'ok') {
         throw new Error('sqlite_backup_quick_check_failed');
       }
     } finally {

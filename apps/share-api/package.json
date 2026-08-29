@@ -21,6 +21,7 @@
     "@fastify/cookie": "11.1.2",
     "@fastify/multipart": "10.1.1",
     "@trpc/server": "11.18.0",
+    "better-sqlite3": "13.0.3",
     "config": "workspace:*",
     "database": "workspace:*",
     "dotenv": "17.4.2",
@@ -32,6 +33,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
     "node-gyp": "12.4.0",
     "tsconfig": "workspace:*",
     "tsup": "8.5.1",

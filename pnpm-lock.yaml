@@ -154,6 +154,9 @@ importers:
       '@trpc/server':
         specifier: 11.18.0
         version: 11.18.0(typescript@6.0.3)
+      better-sqlite3:
+        specifier: 13.0.3
+        version: 13.0.3
       config:
         specifier: workspace:*
         version: link:../../packages/config
@@ -182,6 +185,9 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
     devDependencies:
+      '@types/better-sqlite3':
+        specifier: 7.6.13
+        version: 7.6.13
       node-gyp:
         specifier: 12.4.0
         version: 12.4.0
