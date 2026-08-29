@@ -25,9 +25,9 @@ jobs:
       - run: pnpm generate
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm build
       - run: pnpm --filter share-api test
       - run: pnpm --filter share-web test
-      - run: pnpm build
 
   image:
     needs: quality
