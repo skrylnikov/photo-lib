@@ -3,7 +3,7 @@ import { S3mini } from 's3mini';
 import { appConfig } from 'config';
 
 export type ObjectStore = {
-  put(key: string, data: Uint8Array | ReadableStream<Uint8Array>, contentType: string, bytes?: number): Promise<void>;
+  put(key: string, data: Uint8Array | ReadableStream<Uint8Array> | Blob, contentType: string, bytes?: number): Promise<void>;
   multipartPut(key: string, data: Uint8Array, contentType: string): Promise<void>;
   presignPut(key: string, contentType: string): Promise<string>;
   exists(key: string): Promise<boolean>;

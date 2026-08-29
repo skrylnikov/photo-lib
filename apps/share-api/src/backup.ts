@@ -1,8 +1,7 @@
-import { createReadStream } from 'node:fs';
+import { openAsBlob } from 'node:fs';
 import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { Readable } from 'node:stream';
 
 import Database from 'better-sqlite3';
 
@@ -44,7 +43,7 @@ export const backupSqlite = async ({
 
     const key = `${backupPrefix}${now.toISOString()}.db`;
     const bytes = (await stat(destination)).size;
-    const body = Readable.toWeb(createReadStream(destination)) as ReadableStream<Uint8Array>;
+    const body = await openAsBlob(destination, { type: 'application/vnd.sqlite3' });
     await store.put(key, body, 'application/vnd.sqlite3', bytes);
 
     const cutoff = now.getTime() - retentionMs;
