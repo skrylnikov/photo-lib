@@ -35,9 +35,9 @@ RUN SHARP_DIR="$(find node_modules/.pnpm -maxdepth 1 -type d -name 'sharp@*')" \
   && cd "$SHARP_DIR/node_modules/sharp" \
   && PATH="/app/node_modules/.bin:$PATH" npm run build
 RUN pnpm run generate
+RUN pnpm run build
 RUN CODEC_PROBE_DEBUG=1 pnpm --filter share-api check:codecs
 RUN CUSTOM_MEDIA_RUNTIME=1 pnpm --filter share-api exec tsx --test src/media/custom-runtime.test.ts
-RUN pnpm run build
 
 FROM node:24.13.0-bookworm-slim AS runtime
 
