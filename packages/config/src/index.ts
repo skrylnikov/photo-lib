@@ -22,6 +22,7 @@ const databasePath = databaseUrl.startsWith('file:')
 
 export const appConfig = {
   nodeEnv: env.NODE_ENV ?? 'development',
+  devAuthBypass: env.DEV_AUTH_BYPASS === 'true',
   port: numberFromEnv('PORT', 4001),
   databaseUrl,
   databasePath,

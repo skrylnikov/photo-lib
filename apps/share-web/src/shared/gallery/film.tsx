@@ -77,7 +77,7 @@ const FilmRow = ({
       aria-label={`Frame ${String(photo.frameIndex + 1)}: ${photo.alt}`}
       onClick={(event) => onOpen(photo.frameIndex, event.currentTarget, rowRef.current ?? event.currentTarget)}
     >
-      <Picture value={photo} className={styles.image} />
+      <Picture value={photo} className={styles.image} sizes={`${String(photo.renderWidth)}px`} />
     </button>)}
   </div>;
 };

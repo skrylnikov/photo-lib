@@ -1,7 +1,13 @@
 .DS_Store
 node_modules/
 .env
+.env.*
 .prod.env
+*.db
+*.db-wal
+*.db-shm
+**/data/cache/.index.json
+.runtime-backup/
 cache/**/*.db
 cache/**/*.jpg
 cache/**/*.webp
@@ -15,3 +21,5 @@ test-fixtures/heic/*-source.png
 dist
 packages/database/prisma/generated/
 *.prod.yml
+apps/share-web/test-results/
+**/test-results/

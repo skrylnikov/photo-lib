@@ -9,8 +9,15 @@ import {
   isUsableViewerRect,
   isViewerDerivativeReady,
   nextViewerIndex,
+  startViewerNavigation,
+  viewerFilmEdgeExpansion,
   viewerFilmBottomPadding,
   viewerNestedHandoffCorrection,
+  viewerNavigationPerforationOffset,
+  viewerOffscreenShift,
+  viewerPerforationOffsetForAnchorCenter,
+  type ViewerNavigation,
+  type ViewerNavigationDirection,
   type ViewerRect,
 } from './viewer-state';
 
@@ -56,6 +63,12 @@ const readGradientGeometry = (backgroundImage: string): { holeWidth: string; ste
   if (pixels.length < 4 || !pixels.every(Number.isFinite)) return null;
   return { holeWidth: `${String(pixels[1])}px`, step: `${String(pixels[pixels.length - 1])}px` };
 };
+
+const selectDerivative = (photo: PublicPhoto | undefined, largest: boolean) => photo && ['jpeg', 'webp', 'avif', 'jxl', 'heic']
+  .map((format) => photo.derivatives
+    .filter((item) => item.format === format)
+    .sort((left, right) => (largest ? right.width - left.width : left.width - right.width))[0])
+  .find(Boolean);
 
 type FilmTransform = {
   translateX: number;
@@ -158,35 +171,101 @@ export const PhotoViewer = ({
   const restoreAnimatedSourceRef = useRef<(() => void) | null>(null);
   const alignHandoffRef = useRef<(() => void) | null>(null);
   const handoffFrameRef = useRef(0);
+  const navigationRef = useRef<ViewerNavigation | null>(null);
+  const originOpenedRef = useRef(false);
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
   const [zoom, setZoom] = useState(1);
   const [decodedFullUrl, setDecodedFullUrl] = useState<string | null>(null);
-  const [movement, setMovement] = useState<'next' | 'previous' | null>(null);
+  const [navigation, setNavigation] = useState<ViewerNavigation | null>(null);
+  const [perforationOffset, setPerforationOffset] = useState(0);
   const [settled, setSettled] = useState(false);
   const [handoffGeneration, setHandoffGeneration] = useState(0);
   const [backdropOpaque, setBackdropOpaque] = useState(false);
   const touchStart = useRef<number | null>(null);
   const photo = state ? photos[state.index] : undefined;
-  const derivative = photo && ['jpeg', 'webp', 'avif', 'jxl', 'heic']
-    .map((format) => photo.derivatives.filter((item) => item.format === format).sort((left, right) => right.width - left.width)[0])
-    .find(Boolean);
-  const previewDerivative = photo && ['jpeg', 'webp', 'avif', 'jxl', 'heic']
-    .map((format) => photo.derivatives.filter((item) => item.format === format).sort((left, right) => left.width - right.width)[0])
-    .find(Boolean);
+  const derivative = selectDerivative(photo, true);
+  const previewDerivative = selectDerivative(photo, false);
 
-  const animateMove = useCallback((direction: 'next' | 'previous', move: () => void) => {
-    setMovement(direction);
-    move();
-    window.setTimeout(() => setMovement(null), 360);
-  }, []);
-  const nextWithAnimation = useCallback(() => animateMove('next', onNext), [animateMove, onNext]);
-  const previousWithAnimation = useCallback(() => animateMove('previous', onPrevious), [animateMove, onPrevious]);
-  const requestClose = useCallback(() => {
-    setSettled(false);
-    setBackdropOpaque(false);
+  const startNavigation = useCallback((direction: ViewerNavigationDirection) => {
+    if (!state || state.closing) return;
+    const nextNavigation = startViewerNavigation(state.index, direction, photos.length, navigationRef.current);
+    if (!nextNavigation) return;
+    navigationRef.current = nextNavigation;
     setZoom(1);
+    setNavigation(nextNavigation);
+  }, [photos.length, state]);
+  const nextWithAnimation = useCallback(() => startNavigation('next'), [startNavigation]);
+  const previousWithAnimation = useCallback(() => startNavigation('previous'), [startNavigation]);
+  const requestClose = useCallback(() => {
+    setZoom(1);
+    if (!navigationRef.current) {
+      setSettled(false);
+      setBackdropOpaque(false);
+    }
     onClose();
   }, [onClose]);
+  const showSettled = useCallback(() => {
+    originOpenedRef.current = true;
+    setSettled(true);
+  }, []);
+
+  useEffect(() => {
+    if (!state) originOpenedRef.current = false;
+  }, [state]);
+
+  useLayoutEffect(() => {
+    const track = compositionRef.current;
+    if (!navigation || !track) return undefined;
+    let frameId = 0;
+    let startedAt: number | null = null;
+    const viewportWidth = window.innerWidth;
+    const start = navigation.direction === 'next' ? 0 : -viewportWidth;
+    const end = navigation.direction === 'next' ? -viewportWidth : 0;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const configuredDuration = Number((window as Window & { __PHOTO_VIEWER_E2E_DURATION__?: number }).__PHOTO_VIEWER_E2E_DURATION__);
+    const duration = reducedMotion
+      ? 0
+      : Number.isFinite(configuredDuration) && configuredDuration > 0 ? configuredDuration : 360;
+
+    const finish = () => {
+      setPerforationOffset((current) => viewerNavigationPerforationOffset(
+        current,
+        viewportWidth,
+        navigation.direction,
+      ));
+      navigationRef.current = null;
+      setNavigation(null);
+      (navigation.direction === 'next' ? onNext : onPrevious)();
+    };
+    const animate = (timestamp: number) => {
+      startedAt ??= timestamp;
+      const elapsed = duration === 0 ? 1 : Math.min(1, (timestamp - startedAt) / duration);
+      const progress = 1 - ((1 - elapsed) ** 3);
+      const translateX = start + (end - start) * progress;
+      track.style.transform = `translateX(${String(translateX)}px)`;
+      track.dataset.photoViewerNavigationProgress = String(progress);
+      if (elapsed >= 1) finish();
+      else frameId = window.requestAnimationFrame(animate);
+    };
+
+    track.dataset.photoViewerNavigation = navigation.direction;
+    track.style.transform = `translateX(${String(start)}px)`;
+    track.dataset.photoViewerNavigationProgress = '0';
+    if (duration === 0) {
+      track.style.removeProperty('transform');
+      delete track.dataset.photoViewerNavigation;
+      delete track.dataset.photoViewerNavigationProgress;
+      finish();
+      return undefined;
+    }
+    frameId = window.requestAnimationFrame(animate);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      track.style.removeProperty('transform');
+      delete track.dataset.photoViewerNavigation;
+      delete track.dataset.photoViewerNavigationProgress;
+    };
+  }, [navigation, onNext, onPrevious]);
 
   useEffect(() => {
     if (!state || state.closing) return undefined;
@@ -225,8 +304,10 @@ export const PhotoViewer = ({
 
   useEffect(() => {
     if (state?.closing) {
-      setSettled(false);
-      setBackdropOpaque(false);
+      if (!navigationRef.current) {
+        setSettled(false);
+        setBackdropOpaque(false);
+      }
     }
   }, [state?.closing]);
 
@@ -245,7 +326,7 @@ export const PhotoViewer = ({
   }, [handoffGeneration, settled, state?.closing]);
 
   useEffect(() => {
-    if (!state) return undefined;
+    if (!state || navigationRef.current || (originOpenedRef.current && !state.closing)) return undefined;
     let cancelled = false;
     let frameId = 0;
     let animationFrameId = 0;
@@ -273,7 +354,7 @@ export const PhotoViewer = ({
         return;
       }
 
-      setSettled(true);
+      showSettled();
       setHandoffGeneration((current) => current + 1);
     };
 
@@ -284,7 +365,7 @@ export const PhotoViewer = ({
         if (state.closing) onCloseComplete();
         else {
           setBackdropOpaque(true);
-          setSettled(true);
+          showSettled();
         }
         return;
       }
@@ -304,7 +385,10 @@ export const PhotoViewer = ({
       const targetLoadedRect = readLoadedTargetRect();
       let targetAnchorRect = targetLoadedRect ?? readRect(viewerWindowRef.current);
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-      const duration = reducedMotion ? 120 : 520;
+      const configuredDuration = Number((window as Window & { __PHOTO_VIEWER_E2E_DURATION__?: number }).__PHOTO_VIEWER_E2E_DURATION__);
+      const duration = reducedMotion
+        ? 120
+        : Number.isFinite(configuredDuration) && configuredDuration > 0 ? configuredDuration : 520;
 
       if (!state.closing && !targetLoadedRect && performance.now() - imageWaitStartedAt < imageWaitTimeout) {
         frameId = window.requestAnimationFrame(run);
@@ -315,7 +399,7 @@ export const PhotoViewer = ({
         if (state.closing) onCloseComplete();
         else {
           setBackdropOpaque(true);
-          setSettled(true);
+          showSettled();
         }
         return;
       }
@@ -333,6 +417,10 @@ export const PhotoViewer = ({
         filmStyles.filmPerforationInset,
       ];
       const sourceStyles = getComputedStyle(source);
+      const sourceImage = state.origin.querySelector('img');
+      const sourceImageRadius = Number.parseFloat(
+        getComputedStyle(sourceImage ?? state.origin).borderTopLeftRadius,
+      ) || 3;
       const sourcePerforationStyles = getComputedStyle(source, '::before');
       const sourceGradientGeometry = readGradientGeometry(sourcePerforationStyles.backgroundImage);
       const sourceBorderWidth = Number.parseFloat(sourceStyles.borderTopWidth) || 1;
@@ -341,6 +429,11 @@ export const PhotoViewer = ({
       const sourcePerforationOffset = Number.parseFloat(
         sourceStyles.getPropertyValue(cssVarName(filmStyles.filmPerforationOffset)),
       ) || 0;
+      const sourcePerforationHoleWidth = Number.parseFloat(sourceGradientGeometry?.holeWidth ?? '0') || 0;
+      const sourcePerforationHoleCenterOffset = sourceRect && sourceAnchorRect && sourcePerforationHoleWidth > 0
+        ? sourceRect.left + sourceBorderWidth + sourcePerforationOffset + sourcePerforationHoleWidth / 2
+          - (sourceAnchorRect.left + sourceAnchorRect.width / 2)
+        : 0;
       const sourcePerforationColor = sourceStyles.getPropertyValue(
         cssVarName(filmStyles.filmPerforationColor),
       ).trim();
@@ -355,7 +448,9 @@ export const PhotoViewer = ({
         [filmStyles.filmPerforationInset, sourcePerforationStyles.top],
       ]);
       const applyFilmScale = (factor: number) => {
-        sourceFilmValues.forEach((value, property) => composition.style.setProperty(cssVarName(property), multiplyCssPixels(value, factor)));
+        sourceFilmValues.forEach((value, property) => {
+          if (property !== filmStyles.filmRadius) composition.style.setProperty(cssVarName(property), multiplyCssPixels(value, factor));
+        });
         const metadataGap = Number.parseFloat(
           getComputedStyle(composition).getPropertyValue(cssVarName(styles.viewerMetadataPerforationGap)),
         );
@@ -403,11 +498,13 @@ export const PhotoViewer = ({
         if (state.closing) onCloseComplete();
         else {
           setBackdropOpaque(true);
-          setSettled(true);
+          showSettled();
         }
         return;
       }
       const initialScale = targetAnchorRect.width / sourceAnchorRect.width;
+      const targetImageRadius = sourceImageRadius * initialScale;
+      composition.style.setProperty('--viewer-image-radius', `${String(targetImageRadius)}px`);
       applyFilmScale(initialScale);
       const sourceClone = source.cloneNode(true) as HTMLElement;
       const clone = document.createElement('div');
@@ -423,22 +520,31 @@ export const PhotoViewer = ({
       let metadataRect = readRect(metadataTemplate);
       let metadataClone: HTMLElement | null = null;
       let metadataTargetHeight = 0;
+      let metadataTargetWidth = 0;
       let metadataTargetPaddingTop = 0;
       let metadataSourcePaddingTop = 0;
+      let metadataTypographyFontSize = '';
+      let metadataTypographyLetterSpacing = '';
+      let metadataTypographyRowGap = '';
+      let metadataTypographyColumnGap = '';
+      let metadataTypographyLineHeight = '';
       if (metadataTemplate) {
         metadataClone = metadataTemplate.cloneNode(true) as HTMLElement;
         const metadataStyles = getComputedStyle(metadataTemplate);
-        metadataClone.style.fontSize = scaleCssLength(metadataStyles.fontSize, initialScale);
-        metadataClone.style.letterSpacing = scaleCssLength(metadataStyles.letterSpacing, initialScale);
-        metadataClone.style.rowGap = scaleCssLength(metadataStyles.rowGap, initialScale);
-        metadataClone.style.columnGap = scaleCssLength(metadataStyles.columnGap, initialScale);
-        metadataClone.style.lineHeight = metadataStyles.lineHeight;
+        metadataTypographyFontSize = metadataStyles.fontSize;
+        metadataTypographyLetterSpacing = metadataStyles.letterSpacing;
+        metadataTypographyRowGap = metadataStyles.rowGap;
+        metadataTypographyColumnGap = metadataStyles.columnGap;
+        metadataTypographyLineHeight = metadataStyles.lineHeight;
         metadataTargetHeight = metadataRect ? metadataRect.height / initialScale : 0;
         metadataSourcePaddingTop = Number.parseFloat(metadataStyles.paddingTop) || 0;
         metadataTargetPaddingTop = metadataSourcePaddingTop / initialScale;
         metadataClone.style.height = '0px';
         metadataClone.style.maxHeight = 'none';
         metadataClone.style.overflow = 'hidden';
+        metadataClone.style.position = 'absolute';
+        metadataClone.style.width = 'auto';
+        metadataClone.style.zIndex = '4';
         metadataClone.style.opacity = '0';
         metadataClone.style.paddingTop = '0px';
         clone.append(metadataClone);
@@ -459,6 +565,7 @@ export const PhotoViewer = ({
         boxShadow: targetStyles.boxShadow,
         transformStyle: targetStyles.transformStyle,
       });
+      clone.dataset.photoViewerAnimation = 'clone';
       filmProperties.forEach((property) => {
         clone.style.setProperty(cssVarName(property), sourceFilmValues.get(property) ?? '');
       });
@@ -487,7 +594,7 @@ export const PhotoViewer = ({
         if (state.closing) onCloseComplete();
         else {
           setBackdropOpaque(true);
-          setSettled(true);
+          showSettled();
         }
         return;
       }
@@ -500,7 +607,7 @@ export const PhotoViewer = ({
         if (state.closing) onCloseComplete();
         else {
           setBackdropOpaque(true);
-          setSettled(true);
+          showSettled();
         }
         return;
       }
@@ -511,7 +618,7 @@ export const PhotoViewer = ({
         if (state.closing) onCloseComplete();
         else {
           setBackdropOpaque(true);
-          setSettled(true);
+          showSettled();
         }
         return;
       }
@@ -539,15 +646,39 @@ export const PhotoViewer = ({
       let targetTranslateXCorrection = 0;
       let targetTranslateYCorrection = 0;
       let targetPaddingTopCorrection = 0;
+      // Move the film edge independently from the selected frame. The row
+      // receives the inverse local shift so an edge correction cannot move the
+      // photo anchor at the handoff.
+      let targetFilmEdgeTranslation = 0;
       const targetBorderWidth = Number.parseFloat(settledTargetStyles.borderTopWidth) || 1;
-      const normalizedTargetBorderWidth = targetBorderWidth / growLineTransform.scale;
       metadataRect = readRect(metadataTemplate);
       if (metadataClone && metadataRect) {
+        metadataTargetWidth = metadataRect.width / growLineTransform.scale;
         metadataTargetHeight = metadataRect.height / growLineTransform.scale;
         metadataTargetPaddingTop = metadataSourcePaddingTop / growLineTransform.scale;
       }
-      const finalPerforationOffset = -(alignedCloneRect.left + growLineTransform.translateX) / growLineTransform.scale;
+      const cloneButtons = [...rowClone.querySelectorAll<HTMLButtonElement>('button')];
+      const selectedButtonIndex = cloneButtons.indexOf(clonedAnchor);
+      const viewport = { left: 0, right: window.innerWidth };
+      const filmViewport = settledCompositionRect
+        ? { left: settledCompositionRect.left, right: settledCompositionRect.left + settledCompositionRect.width }
+        : viewport;
+      const baseCloneWidth = alignedCloneRect.width;
+      let leftFilmExpansion = 0;
+      let rightFilmExpansion = 0;
+      const neighboringFrameShifts = new Map<HTMLButtonElement, number>();
       const setTransform = (progress: number) => {
+        const currentScale = 1 + (growLineTransform.scale - 1) * progress;
+        const currentLeftFilmExpansion = leftFilmExpansion * progress;
+        const currentRightFilmExpansion = rightFilmExpansion * progress;
+        const currentEdgeTranslation = targetFilmEdgeTranslation * progress;
+        const interpolateFilmValue = (property: typeof filmStyles.filmPaddingInline): number | null => {
+          const sourceValue = Number.parseFloat(sourceFilmValues.get(property) ?? '');
+          const targetValue = Number.parseFloat(targetFilmValues.get(property) ?? '');
+          return Number.isFinite(sourceValue) && Number.isFinite(targetValue)
+            ? sourceValue + (targetValue - sourceValue) * progress
+            : null;
+        };
         filmProperties.forEach((property) => {
           const sourceValue = Number.parseFloat(sourceFilmValues.get(property) ?? '');
           let targetValue = Number.parseFloat(targetFilmValues.get(property) ?? '');
@@ -560,23 +691,101 @@ export const PhotoViewer = ({
           }
         });
         clone.style.setProperty(
-          cssVarName(filmStyles.filmPerforationOffset),
-          `${String(sourcePerforationOffset + (finalPerforationOffset - sourcePerforationOffset) * progress)}px`,
-        );
-        clone.style.setProperty(
           cssVarName(filmStyles.filmPerforationColor),
           progress === 0 ? sourcePerforationColor : targetPerforationColor,
         );
-        clone.style.transform = `translate(${String((growLineTransform.translateX + targetTranslateXCorrection) * progress)}px, ${String((growLineTransform.translateY + targetTranslateYCorrection) * progress)}px) scale(${String(1 + (growLineTransform.scale - 1) * progress)})`;
+        clone.style.width = `${String(baseCloneWidth + currentLeftFilmExpansion + currentRightFilmExpansion)}px`;
+        const rowTranslation = currentLeftFilmExpansion - currentEdgeTranslation;
+        rowClone.style.transform = rowTranslation !== 0
+          ? `translateX(${String(rowTranslation)}px)`
+          : 'none';
+        clone.style.transform = `translate(${String((growLineTransform.translateX + targetTranslateXCorrection) * progress - currentLeftFilmExpansion * currentScale + currentEdgeTranslation * currentScale)}px, ${String((growLineTransform.translateY + targetTranslateYCorrection) * progress)}px) scale(${String(currentScale)})`;
+        clone.dataset.photoViewerProgress = String(progress);
         clone.style.height = `${String(sourceCloneHeight + (targetCloneHeight - sourceCloneHeight) * progress)}px`;
-        const borderWidth = sourceBorderWidth + (normalizedTargetBorderWidth - sourceBorderWidth) * progress;
+        // Keep the visible border inset stable while the clone scale changes.
+        // Interpolating the unscaled CSS width makes the perforation appear to
+        // drift away from the film edge before the fullscreen handoff.
+        const visualBorderWidth = sourceBorderWidth + (targetBorderWidth - sourceBorderWidth) * progress;
+        const borderWidth = visualBorderWidth / currentScale;
         clone.style.borderWidth = `${String(borderWidth)}px`;
+        const currentBorderWidth = Number.parseFloat(getComputedStyle(clone).borderLeftWidth) || borderWidth;
+        const currentPerforationHoleWidth = interpolateFilmValue(filmStyles.filmPerforationHoleWidth);
+        const currentPerforationOffset = currentPerforationHoleWidth === null
+          ? sourcePerforationOffset
+          : viewerPerforationOffsetForAnchorCenter(
+            readRect(clone),
+            readRect(clonedAnchor),
+            currentScale,
+            currentPerforationHoleWidth,
+            currentBorderWidth,
+            sourcePerforationHoleCenterOffset * Math.max(0, 1 - progress / 0.98),
+          ) ?? sourcePerforationOffset;
+        clone.style.setProperty(cssVarName(filmStyles.filmPerforationOffset), `${String(currentPerforationOffset)}px`);
+        cloneButtons.forEach((button, index) => {
+          if (index === selectedButtonIndex) return;
+          const side = index < selectedButtonIndex ? 'left' : 'right';
+          const shift = neighboringFrameShifts.get(button) ?? 0;
+          button.style.transform = shift === 0 ? 'none' : `translateX(${String(shift * progress)}px)`;
+          button.style.transformOrigin = side === 'left' ? 'right center' : 'left center';
+        });
         if (metadataClone) {
-          metadataClone.style.height = `${String(metadataTargetHeight * progress)}px`;
-          metadataClone.style.paddingTop = `${String(metadataTargetPaddingTop * progress)}px`;
-          metadataClone.style.opacity = String(progress);
+          const metadataScale = currentScale > 0 ? currentScale : 1;
+          const metadataGrowth = 0.68 + 0.32 * progress;
+          const targetMetadataHeight = metadataTargetHeight * growLineTransform.scale;
+          const targetMetadataWidth = metadataTargetWidth * growLineTransform.scale;
+          const targetMetadataPaddingTop = metadataTargetPaddingTop * growLineTransform.scale;
+          const scaleTypography = (value: string): string => {
+            const pixels = Number.parseFloat(value);
+            if (!Number.isFinite(pixels)) return scaleCssLength(value, metadataScale);
+            return `${String((pixels * metadataGrowth) / metadataScale)}px`;
+          };
+          metadataClone.style.fontSize = scaleTypography(metadataTypographyFontSize);
+          metadataClone.style.letterSpacing = scaleTypography(metadataTypographyLetterSpacing);
+          metadataClone.style.rowGap = scaleTypography(metadataTypographyRowGap);
+          metadataClone.style.columnGap = scaleTypography(metadataTypographyColumnGap);
+          metadataClone.style.lineHeight = scaleTypography(metadataTypographyLineHeight);
+          metadataClone.style.height = `${String((targetMetadataHeight * metadataGrowth) / metadataScale)}px`;
+          metadataClone.style.paddingTop = `${String((targetMetadataPaddingTop * metadataGrowth) / metadataScale)}px`;
+          const paddingInline = interpolateFilmValue(filmStyles.filmPaddingInline);
+          const paddingBottom = interpolateFilmValue(filmStyles.filmPaddingBottom);
+          if (paddingInline !== null) {
+            if (selectedButtonIndex === cloneButtons.length - 1) {
+              metadataClone.style.left = 'auto';
+              metadataClone.style.right = `${String(paddingInline)}px`;
+            } else {
+              metadataClone.style.left = `${String(paddingInline)}px`;
+              metadataClone.style.right = 'auto';
+            }
+          }
+          metadataClone.style.width = `${String((targetMetadataWidth * metadataGrowth) / metadataScale)}px`;
+          if (paddingBottom !== null) metadataClone.style.bottom = `${String(paddingBottom)}px`;
+          metadataClone.style.opacity = String(Math.min(1, progress * 2));
         }
       };
+      setTransform(1);
+      const targetCloneRect = readRect(clone);
+      if (selectedButtonIndex === 0) {
+        leftFilmExpansion = viewerFilmEdgeExpansion(
+          targetCloneRect,
+          filmViewport,
+          'left',
+          growLineTransform.scale,
+        );
+      }
+      if (selectedButtonIndex === cloneButtons.length - 1) {
+        rightFilmExpansion = viewerFilmEdgeExpansion(
+          targetCloneRect,
+          filmViewport,
+          'right',
+          growLineTransform.scale,
+        );
+      }
+      cloneButtons.forEach((button, index) => {
+        if (index === selectedButtonIndex) return;
+        const side = index < selectedButtonIndex ? 'left' : 'right';
+        const shift = viewerOffscreenShift(readRect(button), viewport, side);
+        if (shift !== 0) neighboringFrameShifts.set(button, shift / growLineTransform.scale);
+      });
       const alignTargetHandoff = () => {
         setTransform(1);
         for (let iteration = 0; iteration < 3; iteration += 1) {
@@ -599,6 +808,79 @@ export const PhotoViewer = ({
           targetPaddingTopCorrection += correction.paddingTop;
           targetCloneHeight += correction.height;
           setTransform(1);
+        }
+        for (let iteration = 0; iteration < 3; iteration += 1) {
+          const animatedSurface = readRect(clone);
+          const settledSurface = readRect(composition);
+          if (!animatedSurface || !settledSurface) break;
+          let adjusted = false;
+          if (selectedButtonIndex === 0) {
+            const correction = (animatedSurface.left - settledSurface.left) / growLineTransform.scale;
+            if (Math.abs(correction) > 0.01) {
+              leftFilmExpansion = Math.max(0, leftFilmExpansion + correction);
+              adjusted = true;
+            }
+          }
+          if (selectedButtonIndex === cloneButtons.length - 1) {
+            const correction = (settledSurface.left + settledSurface.width - (animatedSurface.left + animatedSurface.width)) / growLineTransform.scale;
+            if (Math.abs(correction) > 0.01) {
+              rightFilmExpansion = Math.max(0, rightFilmExpansion + correction);
+              adjusted = true;
+            }
+          }
+          if (!adjusted) break;
+          setTransform(1);
+        }
+        // Expanding an edge can change the flex row's fractional layout.
+        // Re-align the selected photo after that adjustment so only the film
+        // edge moves and the photo anchor never jumps at handoff.
+        for (let iteration = 0; iteration < 3; iteration += 1) {
+          const correction = viewerNestedHandoffCorrection(
+            readRect(clone),
+            readRect(composition),
+            readRect(clonedAnchor),
+            readLoadedTargetRect() ?? targetAnchorRect,
+            growLineTransform.scale,
+          );
+          if (!correction) break;
+          if (
+            Math.abs(correction.translateX) <= 0.01
+            && Math.abs(correction.translateY) <= 0.01
+            && Math.abs(correction.paddingTop * growLineTransform.scale) <= 0.01
+            && Math.abs(correction.height * growLineTransform.scale) <= 0.01
+          ) break;
+          targetTranslateXCorrection += correction.translateX;
+          targetTranslateYCorrection += correction.translateY;
+          targetPaddingTopCorrection += correction.paddingTop;
+          targetCloneHeight += correction.height;
+          setTransform(1);
+        }
+        for (let iteration = 0; iteration < 3; iteration += 1) {
+          const animatedSurface = readRect(clone);
+          const settledSurface = readRect(composition);
+          if (!animatedSurface || !settledSurface) break;
+          const edgeDistance = selectedButtonIndex === 0
+            ? animatedSurface.left - settledSurface.left
+            : settledSurface.left + settledSurface.width - (animatedSurface.left + animatedSurface.width);
+          const correction = (selectedButtonIndex === 0 ? -edgeDistance : edgeDistance) / growLineTransform.scale;
+          if (Math.abs(correction) <= 0.01) break;
+          targetFilmEdgeTranslation += correction;
+          setTransform(1);
+        }
+        const settledPerforationHoleWidth = Number.parseFloat(targetGradientGeometry?.holeWidth ?? '');
+        const settledPerforationOffset = viewerPerforationOffsetForAnchorCenter(
+          readRect(composition),
+          readLoadedTargetRect() ?? targetAnchorRect,
+          1,
+          settledPerforationHoleWidth,
+          Number.parseFloat(getComputedStyle(composition).borderLeftWidth) || 0,
+        );
+        if (settledPerforationOffset !== null) {
+          setPerforationOffset(settledPerforationOffset);
+          composition.style.setProperty(
+            cssVarName(filmStyles.filmPerforationOffset),
+            `${String(settledPerforationOffset)}px`,
+          );
         }
       };
       alignHandoffRef.current = alignTargetHandoff;
@@ -625,20 +907,99 @@ export const PhotoViewer = ({
       window.cancelAnimationFrame(handoffFrameRef.current);
       removeAnimatedLine();
     };
-  }, [onCloseComplete, state]);
+  }, [onCloseComplete, showSettled, state]);
 
   if (!state || !photo) return null;
   const isFullFailed = derivative ? failed.has(derivative.url) : true;
   const isPreviewFailed = previewDerivative ? failed.has(previewDerivative.url) : true;
   const hasPreview = Boolean(previewDerivative && !isPreviewFailed);
   const isFullDecoded = isViewerDerivativeReady(decodedFullUrl, derivative?.url);
-  const metadataDate = formatViewerDate(photo.capturedAt);
   const imageStyle = {
     '--viewer-zoom': String(zoom),
   } as CSSProperties;
   const previewStyle = {
     ...imageStyle,
+    '--viewer-image-natural-width': `${String(derivative?.width ?? previewDerivative?.width ?? 1)}px`,
+    '--viewer-image-aspect-ratio': String(
+      (derivative?.width ?? previewDerivative?.width ?? 1) / (derivative?.height ?? previewDerivative?.height ?? 1),
+    ),
     aspectRatio: `${String(derivative?.width ?? previewDerivative?.width ?? 1)} / ${String(derivative?.height ?? previewDerivative?.height ?? 1)}`,
+  } as CSSProperties;
+  const targetPhoto = navigation ? photos[navigation.targetIndex] : undefined;
+  const targetPreviewDerivative = selectDerivative(targetPhoto, false);
+  const targetLargestDerivative = selectDerivative(targetPhoto, true);
+  const renderSection = (sectionPhoto: PublicPhoto, index: number, current: boolean) => {
+    const sectionPreview = current ? previewDerivative : targetPreviewDerivative;
+    const sectionFull = current ? derivative : targetLargestDerivative;
+    const sectionHasPreview = current
+      ? hasPreview
+      : Boolean(sectionPreview && !failed.has(sectionPreview.url));
+    const sectionStyle = current ? previewStyle : {
+      '--viewer-zoom': '1',
+      '--viewer-image-natural-width': `${String(sectionFull?.width ?? sectionPreview?.width ?? 1)}px`,
+      '--viewer-image-aspect-ratio': String(
+        (sectionFull?.width ?? sectionPreview?.width ?? 1) / (sectionFull?.height ?? sectionPreview?.height ?? 1),
+      ),
+      aspectRatio: `${String(sectionFull?.width ?? sectionPreview?.width ?? 1)} / ${String(sectionFull?.height ?? sectionPreview?.height ?? 1)}`,
+    } as CSSProperties;
+
+    return <section
+      key={sectionPhoto.id}
+      className={`${styles.viewerSection} ${navigation ? styles.viewerSectionMoving : ''}`}
+      data-photo-viewer-section={current ? 'current' : 'target'}
+      data-photo-id={sectionPhoto.id}
+    >
+      <div ref={current ? viewerWindowRef : undefined} className={styles.viewerWindow}>
+        {sectionHasPreview && sectionPreview ? <img
+          ref={current ? previewRef : undefined}
+          className={`${styles.image} ${styles.imagePreview}`}
+          src={sectionPreview.url}
+          width={sectionPreview.width}
+          height={sectionPreview.height}
+          alt={sectionPhoto.alt}
+          style={sectionStyle}
+          loading="eager"
+          decoding="async"
+          onError={() => setFailed((failedUrls) => new Set([...failedUrls, sectionPreview.url]))}
+        /> : null}
+        {current && !isFullFailed && derivative ? <img
+          ref={imageRef}
+          className={`${styles.image} ${styles.imageFull} ${isFullDecoded ? styles.imageFullLoaded : ''}`}
+          src={derivative.url}
+          width={derivative.width}
+          height={derivative.height}
+          alt={sectionPhoto.alt}
+          style={imageStyle}
+          loading="eager"
+          decoding="async"
+          onLoad={(event) => {
+            const image = event.currentTarget;
+            const url = derivative.url;
+            void image.decode().then(() => setDecodedFullUrl(url)).catch(() => undefined);
+          }}
+          onError={() => {
+            setDecodedFullUrl((currentUrl) => currentUrl === derivative.url ? null : currentUrl);
+            setFailed((failedUrls) => new Set([...failedUrls, derivative.url]));
+          }}
+        /> : null}
+        {current && isFullFailed && !hasPreview
+          ? <div className={styles.error} role="status">This frame could not be loaded. The rest of the album remains available.</div>
+          : null}
+      </div>
+      <div className={styles.metadata} aria-label="Frame metadata">
+        <span className={styles.metadataTitle}>{title}</span>
+        <span className={styles.metadataItem}>Frame {String(index + 1)}</span>
+        <span className={`${styles.metadataItem} ${styles.metadataDate}`}>{formatViewerDate(sectionPhoto.capturedAt)}</span>
+      </div>
+    </section>;
+  };
+  const sections = navigation && targetPhoto
+    ? navigation.direction === 'next'
+      ? [renderSection(photo, state.index, true), renderSection(targetPhoto, navigation.targetIndex, false)]
+      : [renderSection(targetPhoto, navigation.targetIndex, false), renderSection(photo, state.index, true)]
+    : [renderSection(photo, state.index, true)];
+  const filmStyle = {
+    [cssVarName(filmStyles.filmPerforationOffset)]: `${String(perforationOffset)}px`,
   } as CSSProperties;
 
   return <div className={`${styles.backdrop} ${backdropOpaque ? styles.backdropSettled : ''} ${state.closing ? styles.backdropClosing : ''}`} data-photo-viewer="open" role="dialog" aria-modal="true" aria-label={`${photo.alt}, full screen viewer`}>
@@ -656,6 +1017,7 @@ export const PhotoViewer = ({
     <div
       ref={stageRef}
       className={styles.stage}
+      data-photo-viewer-stage="film"
       onPointerDown={(event) => { touchStart.current = event.clientX; }}
       onPointerUp={(event) => {
         if (touchStart.current === null) return;
@@ -668,49 +1030,11 @@ export const PhotoViewer = ({
     >
       <div
         ref={compositionRef}
-        key={photo.id}
-        className={`${filmStyles.filmSurface} ${styles.viewerFilm} ${state.closing || !settled ? styles.viewerFilmHidden : ''} ${movement === 'next' ? styles.viewerFilmNext : ''} ${movement === 'previous' ? styles.viewerFilmPrevious : ''}`}
+        className={`${filmStyles.filmSurface} ${styles.viewerFilm} ${navigation ? styles.viewerFilmMoving : ''} ${!settled && !navigation ? styles.viewerFilmHidden : ''}`}
+        style={filmStyle}
+        data-photo-viewer-film="track"
       >
-        <div ref={viewerWindowRef} className={styles.viewerWindow}>
-          {hasPreview && previewDerivative ? <img
-            ref={previewRef}
-            className={`${styles.image} ${styles.imagePreview}`}
-            src={previewDerivative.url}
-            width={previewDerivative.width}
-            height={previewDerivative.height}
-            alt={photo.alt}
-            style={previewStyle}
-            loading="eager"
-            decoding="async"
-            onError={() => setFailed((current) => new Set([...current, previewDerivative.url]))}
-          /> : null}
-          {!isFullFailed && derivative ? <img
-            ref={imageRef}
-            className={`${styles.image} ${styles.imageFull} ${isFullDecoded ? styles.imageFullLoaded : ''}`}
-            src={derivative.url}
-            width={derivative.width}
-            height={derivative.height}
-            alt={photo.alt}
-            style={imageStyle}
-            loading="eager"
-            decoding="async"
-            onLoad={(event) => {
-              const image = event.currentTarget;
-              const url = derivative.url;
-              void image.decode().then(() => setDecodedFullUrl(url)).catch(() => undefined);
-            }}
-            onError={() => {
-              setDecodedFullUrl((current) => current === derivative.url ? null : current);
-              setFailed((current) => new Set([...current, derivative.url]));
-            }}
-          /> : null}
-          {isFullFailed && !hasPreview ? <div className={styles.error} role="status">This frame could not be loaded. The rest of the album remains available.</div> : null}
-        </div>
-        <div className={styles.metadata} aria-label="Frame metadata">
-          <span className={styles.metadataTitle}>{title}</span>
-          <span className={styles.metadataItem}>Frame {String(state.index + 1)}</span>
-          <span className={`${styles.metadataItem} ${styles.metadataDate}`}>{metadataDate}</span>
-        </div>
+        {sections}
       </div>
     </div>
   </div>;

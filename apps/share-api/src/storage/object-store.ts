@@ -8,7 +8,7 @@ export type ObjectStore = {
   presignPut(key: string, contentType: string): Promise<string>;
   exists(key: string): Promise<boolean>;
   size(key: string): Promise<number | null>;
-  response(key: string, range?: string): Promise<Response | null>;
+  response(key: string): Promise<Response | null>;
   remove(key: string): Promise<void>;
   list(prefix: string): Promise<Array<{ key: string; lastModified: Date }>>;
 };
@@ -63,16 +63,8 @@ export const objectStore: ObjectStore = {
       return null;
     }
   },
-  async response(key, range) {
+  async response(key) {
     try {
-      if (range) {
-        const match = /^bytes=(\d+)-(\d*)$/.exec(range);
-        if (match) {
-          const from = Number.parseInt(match[1], 10);
-          const to = match[2] ? Number.parseInt(match[2], 10) + 1 : undefined;
-          return await client.getObjectRaw(key, false, from, to);
-        }
-      }
       return await client.getObjectResponse(key);
     } catch {
       return null;

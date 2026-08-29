@@ -6,11 +6,32 @@ import {
   formatViewerDate,
   isUsableViewerRect,
   isViewerDerivativeReady,
+  startViewerNavigation,
   viewerFilmBottomPadding,
+  viewerFilmEdgeExpansion,
   viewerHandoffCorrection,
   viewerMetadata,
   viewerNestedHandoffCorrection,
+  viewerNavigationPerforationOffset,
+  viewerOffscreenShift,
+  viewerPerforationOffsetForAnchorCenter,
+  viewerSettledPerforationOffset,
 } from './viewer-state';
+
+test('viewer navigation wraps once and ignores competing input', () => {
+  assert.deepEqual(startViewerNavigation(3, 'next', 4, null), { direction: 'next', targetIndex: 0 });
+  assert.deepEqual(startViewerNavigation(0, 'previous', 4, null), { direction: 'previous', targetIndex: 3 });
+  assert.equal(
+    startViewerNavigation(0, 'next', 4, { direction: 'previous', targetIndex: 3 }),
+    null,
+  );
+  assert.equal(startViewerNavigation(0, 'next', 1, null), null);
+});
+
+test('navigation carries the visible perforation phase into the settled film', () => {
+  assert.equal(viewerNavigationPerforationOffset(17.5, 1280, 'next'), -1262.5);
+  assert.equal(viewerNavigationPerforationOffset(17.5, 1280, 'previous'), 17.5);
+});
 
 test('viewer metadata contains only album title, frame number, and effective date', () => {
   assert.deepEqual(viewerMetadata('Summer album', 2, 'not-a-date'), {
@@ -76,4 +97,36 @@ test('viewer metadata gap stays fixed outside scaled perforation geometry', () =
   assert.equal(viewerFilmBottomPadding(24, 6, 4), 34);
   assert.equal(viewerFilmBottomPadding(18, 4, 3), 25);
   assert.equal(viewerFilmBottomPadding(10 * 3, 3 * 3, 4), 43);
+});
+
+test('neighboring frames move exactly to the viewport edge', () => {
+  const viewport = { left: 0, right: 1000 };
+  assert.equal(viewerOffscreenShift({ left: 40, top: 0, width: 160, height: 100 }, viewport, 'left'), -200);
+  assert.equal(viewerOffscreenShift({ left: 800, top: 0, width: 160, height: 100 }, viewport, 'right'), 200);
+  assert.equal(viewerOffscreenShift({ left: -240, top: 0, width: 160, height: 100 }, viewport, 'left'), 0);
+  assert.equal(viewerOffscreenShift({ left: 1040, top: 0, width: 160, height: 100 }, viewport, 'right'), 0);
+});
+
+test('edge film expansion reaches the viewport edge in local coordinates', () => {
+  const viewport = { left: 0, right: 1000 };
+  assert.equal(viewerFilmEdgeExpansion({ left: 40, top: 0, width: 600, height: 100 }, viewport, 'left', 4), 10);
+  assert.equal(viewerFilmEdgeExpansion({ left: 200, top: 0, width: 600, height: 100 }, viewport, 'right', 2), 100);
+  assert.equal(viewerFilmEdgeExpansion({ left: -40, top: 0, width: 600, height: 100 }, viewport, 'left', 4), 0);
+});
+
+test('settled film uses the animated perforation phase', () => {
+  const animated = { left: 127.25, top: 0, width: 1200, height: 100 };
+  const settled = { left: 128, top: 0, width: 1200, height: 100 };
+  assert.equal(viewerSettledPerforationOffset(animated, settled, 0, 4), -0.75);
+  assert.equal(viewerSettledPerforationOffset(animated, settled, 2, 4), 7.25);
+  assert.equal(viewerSettledPerforationOffset(animated, settled, 0, 4, 0.25, 1), -1.5);
+  assert.equal(viewerSettledPerforationOffset(null, settled, 0, 4), null);
+});
+
+test('perforation phase centers a hole on the selected photo', () => {
+  const film = { left: 100, top: 0, width: 800, height: 100 };
+  const anchor = { left: 300, top: 0, width: 200, height: 80 };
+  const offset = viewerPerforationOffsetForAnchorCenter(film, anchor, 2, 20, 1);
+  assert.equal(offset, 139);
+  assert.equal(viewerPerforationOffsetForAnchorCenter(null, anchor, 2, 20), null);
 });

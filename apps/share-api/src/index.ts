@@ -15,6 +15,7 @@ import { appRouter } from './routers';
 import { createContext } from './context';
 import { registerAuthRoutes } from './auth/routes';
 import { registerMediaRoutes } from './routes/media';
+import { registerHealthRoutes } from './routes/health';
 import { ensureCache } from './storage/cache';
 import {
   codecVersionDiagnostics,
@@ -52,10 +53,7 @@ app.register(fastifyTRPCPlugin, {
   trpcOptions: { router: appRouter, createContext },
 });
 
-app.register((fastify) => {
-  fastify.get('/', () => ({ service: 'photo-library' }));
-  fastify.get('/health', () => ({ status: 'ok', codecVersions, codecCapabilities }));
-});
+registerHealthRoutes(app, codecVersions, codecCapabilities);
 
 registerAuthRoutes(app);
 registerMediaRoutes(app);

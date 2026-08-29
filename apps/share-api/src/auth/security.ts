@@ -11,6 +11,11 @@ export const isAllowedIdentity = (
 export const hasExpectedNonce = (actual: unknown, expected: string): boolean =>
   typeof actual === 'string' && actual === expected;
 
+export const isDevelopmentAuthBypassEnabled = (
+  nodeEnv: string,
+  enabled: boolean,
+): boolean => nodeEnv === 'development' && enabled;
+
 export const isSessionActive = (
   session: { revokedAt: Date | null; expiresAt: Date },
   now = new Date(),

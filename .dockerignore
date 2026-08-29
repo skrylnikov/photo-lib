@@ -1,7 +1,15 @@
 node_modules
+**/.env
+**/.env.*
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/data/cache/.index.json
+.runtime-backup
 cache
 dist
 test-fixtures/heic/*.HEIC
 test-fixtures/heic/*.heic
 !test-fixtures/heic/tiled-6x8.heic
 !test-fixtures/heic/tiled-17x16-over-budget.heic
+**/test-results

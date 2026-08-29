@@ -9,6 +9,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
+      - DEV_AUTH_BYPASS=true
       - PORT=4001
       - DATABASE_URL=file:/var/lib/photo-library/photo-library.db
       - SQLITE_BUSY_TIMEOUT_MS=5000
@@ -23,7 +24,7 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
-      - 4001:4001
+      - 127.0.0.1:4001:4001
     volumes:
       - ./apps/share-api/data:/var/lib/photo-library
       - share-api-cache:/app/data/cache
@@ -40,8 +41,8 @@ services:
       - RUSTFS_SECRET_KEY=devsecret
       - RUSTFS_CORS_ALLOWED_ORIGINS=*
     ports:
-      - 9000:9000
-      - 9001:9001
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9001:9001
     volumes:
       - rustfs-data:/data
 

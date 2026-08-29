@@ -69,7 +69,7 @@ const execute = async (job: NonNullable<Awaited<ReturnType<typeof claim>>>): Pro
   }
 };
 
-const loop = async (): Promise<void> => {
+const processNextJob = async (): Promise<boolean> => {
   await recoverExpired();
   if (Date.now() - lastCleanupAt >= 60_000) {
     lastCleanupAt = Date.now();
@@ -77,13 +77,45 @@ const loop = async (): Promise<void> => {
   }
   const job = await claim();
   if (job) await execute(job);
-  setTimeout(() => void loop(), job ? 0 : 1000);
+  return Boolean(job);
+};
+
+type RunnerDependencies = {
+  processNextJob: () => Promise<boolean>;
+  schedule: (callback: () => void, delay: number) => void;
+  reportError: (error: unknown) => void;
+};
+
+const runnerDependencies: RunnerDependencies = {
+  processNextJob,
+  schedule: (callback, delay) => setTimeout(callback, delay),
+  reportError: (error) => {
+    console.error('job runner iteration failed', {
+      type: error instanceof Error ? error.name : 'unknown',
+    });
+  },
+};
+
+export const runJobRunnerIteration = async (
+  dependencies: RunnerDependencies = runnerDependencies,
+): Promise<void> => {
+  let delay = 1000;
+  try {
+    delay = await dependencies.processNextJob() ? 0 : 1000;
+  } catch (error) {
+    dependencies.reportError(error);
+  } finally {
+    dependencies.schedule(
+      () => void runJobRunnerIteration(dependencies),
+      delay,
+    );
+  }
 };
 
 export const startJobRunner = (): void => {
   if (runnerStarted) return;
   runnerStarted = true;
-  void loop();
+  void runJobRunnerIteration();
 };
 
 export const recoverJobs = recoverExpired;

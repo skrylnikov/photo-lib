@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { hasExpectedNonce, isAllowedIdentity, isSessionActive } from './security';
+import {
+  hasExpectedNonce,
+  isAllowedIdentity,
+  isDevelopmentAuthBypassEnabled,
+  isSessionActive,
+} from './security';
 
 test('allows configured subject and group, and rejects other identities', () => {
   assert.equal(isAllowedIdentity({ subject: 'owner', groups: [] }, ['owner'], []), true);
@@ -20,4 +25,10 @@ test('treats expired and revoked sessions as unauthenticated', () => {
   assert.equal(isSessionActive({ revokedAt: null, expiresAt: new Date('2026-08-18T01:00:00.000Z') }, now), true);
   assert.equal(isSessionActive({ revokedAt: null, expiresAt: new Date('2026-08-17T23:00:00.000Z') }, now), false);
   assert.equal(isSessionActive({ revokedAt: now, expiresAt: new Date('2026-08-18T01:00:00.000Z') }, now), false);
+});
+
+test('requires explicit development auth bypass and never enables it in production', () => {
+  assert.equal(isDevelopmentAuthBypassEnabled('development', false), false);
+  assert.equal(isDevelopmentAuthBypassEnabled('development', true), true);
+  assert.equal(isDevelopmentAuthBypassEnabled('production', true), false);
 });

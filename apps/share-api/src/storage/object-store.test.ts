@@ -15,9 +15,9 @@ test('RustFS object-store smoke test', { skip: process.env.RUSTFS_SMOKE_TEST !==
     await objectStore.put(key, value, 'application/octet-stream', value.byteLength);
     assert.equal(await objectStore.exists(key), true);
     assert.equal(await objectStore.size(key), value.byteLength);
-    const range = await objectStore.response(key, 'bytes=0-5');
-    assert.ok(range);
-    assert.equal((await range.arrayBuffer()).byteLength, 6);
+    const response = await objectStore.response(key);
+    assert.ok(response);
+    assert.equal((await response.arrayBuffer()).byteLength, value.byteLength);
 
     const uploadUrl = await objectStore.presignPut(presignedKey, 'application/octet-stream');
     const uploadResponse = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: value });

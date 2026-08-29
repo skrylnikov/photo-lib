@@ -100,7 +100,7 @@ export const filmSurface = style({
   borderRadius: filmRadius,
   background: 'linear-gradient(180deg, rgba(27, 28, 31, .46) 0%, rgba(12, 13, 15, .54) 48%, rgba(22, 23, 26, .46) 100%)',
   vars: {
-    [filmRadius]: '10px',
+    [filmRadius]: '0px',
     [filmPaddingTop]: '24px',
     [filmPaddingBottom]: '24px',
     [filmPaddingInline]: '14px',
@@ -144,7 +144,7 @@ export const filmSurface = style({
   '@media': {
     '(max-width: 640px)': {
       vars: {
-        [filmRadius]: '8px',
+        [filmRadius]: '0px',
         [filmPaddingTop]: '20px',
         [filmPaddingBottom]: '20px',
         [filmPaddingInline]: '8px',

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/shared/gallery/layout.test.ts src/shared/ui/viewer-state.test.ts"
+    "test": "node --import tsx --test src/shared/gallery/layout.test.ts src/shared/ui/picture.test.ts src/shared/ui/viewer-state.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@mantine/core": "9.5.1",
@@ -25,11 +26,12 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
+    "@playwright/test": "^1.62.1",
     "@rolldown/plugin-babel": "0.2.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "@vitejs/plugin-react": "6.0.5",
     "@vanilla-extract/vite-plugin": "5.2.6",
+    "@vitejs/plugin-react": "6.0.5",
     "share-api": "workspace:*",
     "tsconfig": "workspace:*",
     "tsx": "4.23.12",

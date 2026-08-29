@@ -1,4 +1,4 @@
-import { createVar, globalStyle, keyframes, style } from '@vanilla-extract/css';
+import { createVar, globalStyle, style } from '@vanilla-extract/css';
 
 import {
   filmPaddingBottom,
@@ -12,15 +12,6 @@ import {
   filmPerforationStep,
   filmRadius,
 } from '../gallery/film.css.ts';
-
-const filmSlideNext = keyframes({
-  from: { transform: 'translateX(72px) rotateY(-14deg)' },
-  to: { transform: 'translateX(0) rotateY(0)' },
-});
-const filmSlidePrevious = keyframes({
-  from: { transform: 'translateX(-72px) rotateY(14deg)' },
-  to: { transform: 'translateX(0) rotateY(0)' },
-});
 
 export const viewerMetadataPerforationGap = createVar();
 
@@ -96,11 +87,11 @@ export const title = style({
 });
 
 export const viewerFilm = style({
-  display: 'grid',
-  gridTemplateRows: 'auto auto',
-  justifyItems: 'center',
+  display: 'flex',
+  alignItems: 'stretch',
   width: '100vw',
-  minWidth: 0,
+  minWidth: '100vw',
+  height: '100%',
   maxWidth: 'none',
   maxHeight: 'calc(100vh - 130px)',
   overflow: 'hidden',
@@ -137,21 +128,35 @@ export const viewerFilm = style({
   },
 });
 
+export const viewerFilmMoving = style({
+  width: '200vw',
+  minWidth: '200vw',
+  maxHeight: 'none',
+  willChange: 'transform',
+});
+
+export const viewerSection = style({
+  display: 'grid',
+  flex: '0 0 100%',
+  gridTemplateRows: 'minmax(0, 1fr) auto',
+  justifyItems: 'center',
+  minWidth: 0,
+  minHeight: 0,
+});
+
+export const viewerSectionMoving = style({
+  flexBasis: `calc(100vw - 2 * ${filmPaddingInline} - 2px)`,
+  selectors: {
+    '& + &': { marginLeft: `calc(2 * ${filmPaddingInline} + 2px)` },
+  },
+});
+
 export const viewerFilmHidden = style({
   visibility: 'hidden',
 });
 
 export const sourceFilmHidden = style({
   visibility: 'hidden',
-});
-
-export const viewerFilmNext = style({
-  animation: `${filmSlideNext} 260ms cubic-bezier(.2,.75,.25,1) both`,
-  '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
-});
-export const viewerFilmPrevious = style({
-  animation: `${filmSlidePrevious} 260ms cubic-bezier(.2,.75,.25,1) both`,
-  '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
 });
 
 export const viewerWindow = style({
@@ -175,6 +180,7 @@ export const image = style({
   height: 'auto',
   objectFit: 'contain',
   border: 0,
+  borderRadius: 'var(--viewer-image-radius, 3px)',
   background: 'transparent',
   boxShadow: 'none',
   transform: 'scale(var(--viewer-zoom, 1))',
@@ -189,13 +195,13 @@ export const image = style({
 export const imagePreview = style({
   gridArea: '1 / 1',
   zIndex: 1,
-  width: 'auto',
-  height: 'calc(100vh - 320px)',
+  width: 'min(var(--viewer-image-natural-width, 100%), 100%, calc(var(--viewer-image-max-height, calc(100vh - 320px)) * var(--viewer-image-aspect-ratio, 1)))',
+  height: 'auto',
   maxWidth: '100%',
   maxHeight: 'var(--viewer-image-max-height, calc(100vh - 320px))',
   '@media': {
     '(max-width: 640px)': {
-      height: 'calc(100vh - 360px)',
+      width: 'min(var(--viewer-image-natural-width, 100%), 100%, calc(var(--viewer-image-max-height, calc(100vh - 360px)) * var(--viewer-image-aspect-ratio, 1)))',
       maxHeight: 'var(--viewer-image-max-height, calc(100vh - 360px))',
     },
   },

@@ -16,7 +16,13 @@ const contentTypes: Record<string, string> = {
 };
 const formats = ['jxl', 'avif', 'heic', 'webp', 'jpeg'] as const;
 
-export const registerMediaRoutes = (app: FastifyInstance): void => {
+const mediaDependencies = { prisma, readSession, cacheGet, cachePut, objectStore };
+
+export const registerMediaRoutes = (
+  app: FastifyInstance,
+  overrides: Partial<typeof mediaDependencies> = {},
+): void => {
+  const dependencies = { ...mediaDependencies, ...overrides };
   app.get('/media/:mediaId/:format/:width', async (request, reply) => {
     const params = request.params as { mediaId?: string; format?: string; width?: string };
     const mediaId = params.mediaId ?? '';
@@ -27,8 +33,8 @@ export const registerMediaRoutes = (app: FastifyInstance): void => {
     }
     const derivativeFormat = format as (typeof formats)[number];
 
-    const session = await readSession(request.cookies[appConfig.oidc.cookieName]);
-    const media = await prisma.mediaAsset.findUnique({
+    const session = await dependencies.readSession(request.cookies[appConfig.oidc.cookieName]);
+    const media = await dependencies.prisma.mediaAsset.findUnique({
       where: { id: mediaId },
       include: { derivatives: { where: { format: derivativeFormat, width }, take: 1 } },
     });
@@ -36,7 +42,7 @@ export const registerMediaRoutes = (app: FastifyInstance): void => {
       return reply.code(404).send({ error: 'not_found' });
     }
     if (!session) {
-      const publication = await prisma.albumMedia.findFirst({
+      const publication = await dependencies.prisma.albumMedia.findFirst({
         where: { mediaId, album: { published: true } },
         select: { mediaId: true },
       });
@@ -46,7 +52,7 @@ export const registerMediaRoutes = (app: FastifyInstance): void => {
     }
 
     const derivative = media.derivatives[0];
-    const cached = await cacheGet(derivative.objectKey);
+    const cached = await dependencies.cacheGet(derivative.objectKey);
     if (cached) {
       return reply
         .header('Content-Type', contentTypes[format])
@@ -54,10 +60,10 @@ export const registerMediaRoutes = (app: FastifyInstance): void => {
         .send(cached);
     }
 
-    const stored = await objectStore.response(derivative.objectKey, request.headers.range);
+    const stored = await dependencies.objectStore.response(derivative.objectKey);
     if (!stored?.body) return reply.code(404).send({ error: 'not_found' });
     const value = Buffer.from(await stored.arrayBuffer());
-    await cachePut(derivative.objectKey, value);
+    await dependencies.cachePut(derivative.objectKey, value);
     return reply
       .header('Content-Type', contentTypes[format])
       .header('Cache-Control', 'private, max-age=60')

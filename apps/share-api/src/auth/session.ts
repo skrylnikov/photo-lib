@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import { prisma } from 'database';
 import { appConfig } from 'config';
-import { isSessionActive } from './security';
+import { isDevelopmentAuthBypassEnabled, isSessionActive } from './security';
 
 export type SessionPrincipal = {
   id: string;
@@ -45,7 +45,12 @@ export const issueSession = async (
 export const readSession = async (
   token: string | undefined,
 ): Promise<SessionPrincipal | null> => {
-  if (!token && appConfig.nodeEnv === 'development') return developmentSession();
+  if (
+    !token &&
+    isDevelopmentAuthBypassEnabled(appConfig.nodeEnv, appConfig.devAuthBypass)
+  ) {
+    return developmentSession();
+  }
   if (!token) return null;
 
   const session = await prisma.adminSession.findUnique({

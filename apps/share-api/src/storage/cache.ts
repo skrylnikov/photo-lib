@@ -65,21 +65,25 @@ export const ensureCache = (): Promise<void> => withCacheLock(async () => {
   await saveIndex();
 });
 
-export const cacheGet = (key: string): Promise<Buffer | null> => withCacheLock(async () => {
-  const entries = await loadIndex();
+export const cacheGet = async (key: string): Promise<Buffer | null> => {
+  const entries = index ?? await withCacheLock(loadIndex);
   if (!Object.hasOwn(entries, key)) return null;
   const entry = entries[key];
   try {
     const value = await readFile(entry.file);
     entry.lastAccess = Date.now();
-    await saveIndex();
     return value;
   } catch {
-    removeEntry(entries, key);
-    await saveIndex();
+    await withCacheLock(async () => {
+      const currentEntries = await loadIndex();
+      if (Object.hasOwn(currentEntries, key) && currentEntries[key].file === entry.file) {
+        removeEntry(currentEntries, key);
+        await saveIndex();
+      }
+    });
     return null;
   }
-});
+};
 
 export const cachePut = (key: string, value: Uint8Array): Promise<void> => withCacheLock(async () => {
   if (value.byteLength > appConfig.cache.maxBytes) return;
