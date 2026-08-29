@@ -66,4 +66,4 @@ RUN printf '/usr/local/lib\n/usr/local/lib/aarch64-linux-gnu\n' > /etc/ld.so.con
 RUN ldconfig
 RUN mkdir -p /var/lib/photo-library /app/data/cache /app/data/tmp
 EXPOSE 4001
-CMD ["sh", "-c", "pnpm --filter database db:migrate:deploy && exec node apps/share-api/dist/index.js"]
+CMD ["sh", "-c", "cd packages/database && ./node_modules/.bin/prisma migrate deploy && exec node ../../apps/share-api/dist/index.js"]
