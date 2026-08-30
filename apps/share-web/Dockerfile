@@ -13,4 +13,4 @@ FROM ghcr.io/umputun/reproxy
 COPY --from=build /app/apps/share-web/src/dist /srv/site
 EXPOSE 8080
 USER app
-ENTRYPOINT ["/srv/reproxy", "--assets.location=/srv/site"]
+ENTRYPOINT ["/srv/reproxy", "--assets.location=/srv/site", "--assets.spa"]
