@@ -98,6 +98,15 @@ export const cachePut = (key: string, value: Uint8Array): Promise<void> => withC
   await saveIndex();
 });
 
+export const cacheRemove = (key: string): Promise<void> => withCacheLock(async () => {
+  const entries = await loadIndex();
+  await rm(Object.hasOwn(entries, key) ? entries[key].file : fileFor(key), { force: true });
+  if (Object.hasOwn(entries, key)) {
+    removeEntry(entries, key);
+    await saveIndex();
+  }
+});
+
 export const cacheStats = (): Promise<{ entries: number; bytes: number }> => withCacheLock(async () => {
   const entries = await loadIndex();
   const live = await Promise.all(

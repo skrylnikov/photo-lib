@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/shared/gallery/layout.test.ts src/shared/ui/picture.test.ts src/shared/ui/viewer-state.test.ts",
+    "test": "node --import tsx --test src/pages/admin/state.test.ts src/shared/gallery/layout.test.ts src/shared/ui/picture.test.ts src/shared/ui/viewer-state.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -52,7 +52,7 @@ export const publicRouter = router({
   home: publicProcedure.query(async () => {
     const albums = await prisma.album.findMany({
       where: { published: true },
-      orderBy: { publishedAt: 'desc' },
+      orderBy: { position: 'asc' },
       include: {
         _count: { select: { media: { where: publicAlbumMediaWhere } } },
         media: {

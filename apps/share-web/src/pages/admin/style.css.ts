@@ -31,6 +31,7 @@ export const sidebar = style({
 });
 
 export const albumButton = style({
+  flex: 1,
   width: '100%',
   justifyContent: 'flex-start',
   textAlign: 'left',
@@ -93,6 +94,22 @@ export const mediaPreview = style({
   height: 160,
   objectFit: 'cover',
   background: 'var(--mantine-color-gray-1)',
+});
+
+export const previewButton = style({
+  display: 'block',
+  width: '100%',
+  padding: 0,
+  border: 0,
+  cursor: 'pointer',
+  background: 'transparent',
+});
+
+export const libraryPreview = style({
+  display: 'block',
+  width: '100%',
+  maxHeight: '75vh',
+  objectFit: 'contain',
 });
 
 export const previewFallback = style({

@@ -2,7 +2,7 @@ import { prisma } from 'database';
 import { appConfig } from 'config';
 
 import { processMedia } from './processor';
-import { cleanupUnlinkedUploads } from '../storage/maintenance';
+import { cleanupMediaDeletions, cleanupUnlinkedUploads } from '../storage/maintenance';
 import { failureTransition } from './job-state';
 
 let runnerStarted = false;
@@ -74,6 +74,7 @@ const processNextJob = async (): Promise<boolean> => {
   if (Date.now() - lastCleanupAt >= 60_000) {
     lastCleanupAt = Date.now();
     await cleanupUnlinkedUploads().catch(() => undefined);
+    await cleanupMediaDeletions().catch(() => undefined);
   }
   const job = await claim();
   if (job) await execute(job);

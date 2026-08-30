@@ -9,6 +9,7 @@ generator client {
 
 model Album {
   id          String       @id @default(cuid())
+  position    Int          @unique
   slug        String       @unique
   title       String
   description String?
@@ -113,6 +114,17 @@ model MediaJob {
   @@unique([mediaId, kind])
   @@index([status, availableAt])
   @@index([status, leaseExpiresAt])
+}
+
+model MediaDeletion {
+  mediaId     String   @id
+  originalKey String
+  attempts    Int      @default(0)
+  availableAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([availableAt])
 }
 
 model AdminSession {

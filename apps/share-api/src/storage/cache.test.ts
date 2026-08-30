@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -11,11 +11,19 @@ process.env.DERIVATIVE_CACHE_MAX_BYTES = '64';
 process.env.DERIVATIVE_CACHE_HIGH_WATER_BYTES = '48';
 process.env.DERIVATIVE_CACHE_TARGET_BYTES = '24';
 
-const { cacheGet, cachePut, cacheStats, ensureCache } = await import('./cache');
+const { cacheGet, cachePut, cacheRemove, cacheStats, ensureCache } = await import('./cache');
 
 test('supports parallel reads, missing-file recovery, concurrent writes, and eviction', async () => {
   try {
     await ensureCache();
+    const removableKey = 'remove-me';
+    const removableFile = join(cachePath, `${createHash('sha256').update(removableKey).digest('hex')}.derivative`);
+    await cachePut(removableKey, Buffer.from('remove'));
+    await cacheRemove(removableKey);
+    await cacheRemove(removableKey);
+    assert.equal(await cacheGet(removableKey), null);
+    await assert.rejects(() => stat(removableFile), { code: 'ENOENT' });
+
     await Promise.all([
       cachePut('parallel-a', Buffer.from('aaaaaaaa')),
       cachePut('parallel-b', Buffer.from('bbbbbbbb')),

@@ -5,6 +5,7 @@ const port = process.env.PLAYWRIGHT_PORT ?? '4000';
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
+  workers: process.env.ADMIN_LIVE_E2E === '1' ? 1 : undefined,
   reporter: process.env.CI ? 'dot' : 'list',
   use: {
     baseURL: `http://127.0.0.1:${port}`,

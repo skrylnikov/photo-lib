@@ -27,16 +27,19 @@ import {
   header,
   layout,
   mediaPreview,
+  previewButton,
   preview,
   previewFallback,
   queueCard,
   queueGrid,
   availableMediaCard,
   availableMediaGrid,
+  libraryPreview,
   sidebar,
   visuallyHidden,
   workspace,
 } from './style.css.ts';
+import { filterMedia, moveItemById } from './state';
 import { page } from '../../app/style.css.ts';
 import { trpc, type RouterOutput } from '../../shared/api/trpc';
 
@@ -45,6 +48,7 @@ type Media = RouterOutput['admin']['listMedia'];
 type MediaItem = Media[number];
 type QueuePhase = 'queued' | 'uploading' | 'upload-failed' | 'pending' | 'processing' | 'ready' | 'failed';
 type Membership = { mediaId: string; featured: boolean };
+type PendingOperation = 'create' | 'upload' | 'save' | 'publish' | 'unpublish' | 'delete-album' | 'reorder-albums' | 'retry-media' | 'delete-media' | 'logout';
 type QueueItem = {
   localId: string;
   file: File;
@@ -76,6 +80,13 @@ const statusColor: Record<QueuePhase, string> = {
   failed: 'red',
 };
 
+const mediaStatusLabel: Record<MediaItem['status'], string> = {
+  pending: 'Ожидает обработки',
+  processing: 'Обрабатывается',
+  ready: 'Готово',
+  failed: 'Ошибка обработки',
+};
+
 const updateQueueItem = (items: QueueItem[], localId: string, update: Partial<QueueItem>): QueueItem[] =>
   items.map((item) => item.localId === localId ? { ...item, ...update } : item);
 
@@ -100,12 +111,18 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
   const [newSlug, setNewSlug] = useState('');
   const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
   const [createAlbumError, setCreateAlbumError] = useState<string | null>(null);
-  const [createAlbumSubmitting, setCreateAlbumSubmitting] = useState(false);
+  const [pendingOperation, setPendingOperation] = useState<PendingOperation | null>(null);
+  const [draggedAlbumId, setDraggedAlbumId] = useState<string | null>(null);
+  const [dragOverAlbumId, setDragOverAlbumId] = useState<string | null>(null);
   const [draggedMediaId, setDraggedMediaId] = useState<string | null>(null);
   const [dragOverMediaId, setDragOverMediaId] = useState<string | null>(null);
+  const [mediaSearch, setMediaSearch] = useState('');
+  const [mediaStatus, setMediaStatus] = useState<MediaItem['status'] | 'all'>('all');
+  const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const [failedPreviewIds, setFailedPreviewIds] = useState<ReadonlySet<string>>(() => new Set());
   const selectedAlbumRef = useRef<string | null>(null);
   const dirtyRef = useRef(false);
+  const pendingOperationRef = useRef<PendingOperation | null>(null);
   const queueRef = useRef<QueueItem[]>([]);
 
   const selectedAlbum = useMemo(
@@ -113,6 +130,12 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     [albums, selectedAlbumId],
   );
   const mediaMap = useMemo(() => mediaById(media), [media]);
+  const filteredMedia = useMemo(() => filterMedia(media ?? [], mediaSearch, mediaStatus), [media, mediaSearch, mediaStatus]);
+  const previewMedia = previewMediaId ? mediaMap.get(previewMediaId) ?? null : null;
+  const previewDerivative = previewMedia?.derivatives
+    .filter(({ format }) => format === 'jpeg')
+    .sort((left, right) => right.width - left.width)[0];
+  const busy = pendingOperation !== null;
 
   const syncSelectedAlbum = useCallback((nextAlbums: Albums): void => {
     const nextSelectedId = selectedAlbumRef.current ?? nextAlbums[0]?.id ?? null;
@@ -137,20 +160,20 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     });
   }, []);
 
-  const loadData = useCallback(async (checkSession: boolean): Promise<void> => {
+  const loadData = useCallback(async (checkSession: boolean): Promise<boolean> => {
     setLoadError(false);
     try {
       if (checkSession) {
         const sessionResponse = await fetch('/auth/session');
         if (sessionResponse.status === 401) {
           setUnauthorized(true);
-          return;
+          return false;
         }
         if (!sessionResponse.ok) throw new Error('session_failed');
         const session = (await sessionResponse.json()) as { authenticated?: boolean };
         if (!session.authenticated) {
           setUnauthorized(true);
-          return;
+          return false;
         }
       }
       const [nextAlbums, nextMedia] = await Promise.all([
@@ -162,9 +185,11 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
       setMedia(nextMedia);
       syncSelectedAlbum(nextAlbums);
       mergeServerStatuses(nextMedia);
+      return true;
     } catch (error) {
       if (checkSession) setLoadError(true);
       else setOperationError(humanizeAdminError(error));
+      return false;
     } finally {
       if (checkSession) setLoading(false);
     }
@@ -189,6 +214,13 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     dirtyRef.current = dirty;
   }, [dirty]);
 
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const preventUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', preventUnload);
+    return () => window.removeEventListener('beforeunload', preventUnload);
+  }, [dirty]);
+
   useEffect(() => () => {
     queueRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
   }, []);
@@ -202,7 +234,15 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     return () => window.clearInterval(timer);
   }, [hasActiveQueue, loadData]);
 
+  const markDirty = (): void => {
+    dirtyRef.current = true;
+    setDirty(true);
+  };
+
+  const confirmDiscard = (): boolean => !dirtyRef.current || window.confirm('Отбросить несохранённые изменения альбома?');
+
   const selectAlbum = (id: string | null): void => {
+    if (id === selectedAlbumRef.current || busy || !confirmDiscard()) return;
     selectedAlbumRef.current = id;
     dirtyRef.current = false;
     setSelectedAlbumId(id);
@@ -210,17 +250,32 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     setOperationError(null);
   };
 
-  const run = async (operation: () => Promise<void>, successMessage?: string): Promise<boolean> => {
+  const beginOperation = (operation: PendingOperation): boolean => {
+    if (pendingOperationRef.current) return false;
+    pendingOperationRef.current = operation;
+    setPendingOperation(operation);
+    return true;
+  };
+
+  const endOperation = (): void => {
+    pendingOperationRef.current = null;
+    setPendingOperation(null);
+  };
+
+  const run = async (name: PendingOperation, operation: () => Promise<void>, successMessage?: string): Promise<boolean> => {
+    if (!beginOperation(name)) return false;
     setOperationError(null);
     setOperationNotice(null);
     try {
       await operation();
+      if (!await loadData(false)) return false;
       if (successMessage) setOperationNotice(successMessage);
-      await loadData(false);
       return true;
     } catch (error) {
       setOperationError(humanizeAdminError(error));
       return false;
+    } finally {
+      endOperation();
     }
   };
 
@@ -236,7 +291,7 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
       return;
     }
     setCreateAlbumError(null);
-    setCreateAlbumSubmitting(true);
+    if (!beginOperation('create')) return;
     try {
       const created = await trpc.admin.createAlbum.mutate({ title: nextTitle, slug: nextSlug, description: null });
       selectedAlbumRef.current = created.id;
@@ -247,11 +302,11 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
       setNewSlug('');
       setCreateAlbumOpen(false);
       setOperationNotice('Черновой альбом создан.');
-      await loadData(false);
+      if (!await loadData(false)) return;
     } catch (error) {
       setCreateAlbumError(humanizeAdminError(error));
     } finally {
-      setCreateAlbumSubmitting(false);
+      endOperation();
     }
   };
 
@@ -275,6 +330,7 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
   };
 
   const uploadBatch = async (items: QueueItem[]): Promise<void> => {
+    if (!beginOperation('upload')) return;
     let cursor = 0;
     const worker = async (): Promise<void> => {
       while (cursor < items.length) {
@@ -283,8 +339,12 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
         await uploadOne(items[index]);
       }
     };
-    await Promise.all(Array.from({ length: Math.min(3, items.length) }, () => worker()));
-    await loadData(false);
+    try {
+      await Promise.all(Array.from({ length: Math.min(3, items.length) }, () => worker()));
+      await loadData(false);
+    } finally {
+      endOperation();
+    }
   };
 
   const addFiles = (files: FileList | null): void => {
@@ -331,21 +391,18 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
   };
 
   const updateMembership = (mediaId: string, update: Partial<Membership>): void => {
-    dirtyRef.current = true;
-    setDirty(true);
+    markDirty();
     setMembership((current) => current.map((item) => item.mediaId === mediaId ? { ...item, ...update } : item));
   };
 
   const addToMembership = (mediaId: string): void => {
     if (membership.some((item) => item.mediaId === mediaId)) return;
-    dirtyRef.current = true;
-    setDirty(true);
+    markDirty();
     setMembership((current) => [...current, { mediaId, featured: false }]);
   };
 
   const removeFromMembership = (mediaId: string): void => {
-    dirtyRef.current = true;
-    setDirty(true);
+    markDirty();
     setMembership((current) => current.filter((item) => item.mediaId !== mediaId));
   };
 
@@ -355,8 +412,7 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     if (index < 0 || nextIndex < 0 || nextIndex >= membership.length) return;
     const next = [...membership];
     [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-    dirtyRef.current = true;
-    setDirty(true);
+    markDirty();
     setMembership(next);
   };
 
@@ -368,32 +424,26 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     const next = [...membership];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    dirtyRef.current = true;
-    setDirty(true);
+    markDirty();
     setMembership(next);
     setDraggedMediaId(null);
     setDragOverMediaId(null);
   };
 
-  const saveMembership = async (): Promise<void> => {
-    if (!selectedAlbumId || selectedAlbum?.published) return;
-    const saved = await run(async () => {
-      await trpc.admin.setAlbumMedia.mutate({
-        albumId: selectedAlbumId,
-        items: membership.map(({ mediaId, featured }) => ({ mediaId, featured })),
-      });
-    }, 'Состав альбома сохранён.');
-    if (saved) {
-      dirtyRef.current = false;
-      setDirty(false);
-    }
+  const saveDraftMutation = async () => {
+    if (!selectedAlbumId) throw new Error('album_not_found');
+    return trpc.admin.saveAlbum.mutate({
+      id: selectedAlbumId,
+      title,
+      slug,
+      description: description || null,
+      items: membership.map(({ mediaId, featured }) => ({ mediaId, featured })),
+    });
   };
 
-  const saveMetadata = async (): Promise<void> => {
+  const saveAlbum = async (): Promise<void> => {
     if (!selectedAlbumId || selectedAlbum?.published) return;
-    const saved = await run(async () => {
-      await trpc.admin.updateAlbum.mutate({ id: selectedAlbumId, title, slug, description: description || null });
-    }, 'Данные альбома сохранены.');
+    const saved = await run('save', async () => { await saveDraftMutation(); }, 'Альбом сохранён.');
     if (saved) {
       dirtyRef.current = false;
       setDirty(false);
@@ -402,18 +452,93 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
 
   const deleteAlbum = async (): Promise<void> => {
     if (!selectedAlbumId || selectedAlbum?.published || !window.confirm('Удалить этот неопубликованный альбом?')) return;
-    const deleted = await run(async () => {
+    const deleted = await run('delete-album', async () => {
       await trpc.admin.deleteAlbum.mutate({ id: selectedAlbumId });
     }, 'Альбом удалён.');
-    if (deleted) selectAlbum(null);
+    if (deleted) {
+      selectedAlbumRef.current = null;
+      dirtyRef.current = false;
+      setSelectedAlbumId(null);
+      setDirty(false);
+    }
   };
 
   const togglePublish = async (): Promise<void> => {
-    if (!selectedAlbum) return;
-    await run(async () => {
+    if (!selectedAlbum || !beginOperation(selectedAlbum.published ? 'unpublish' : 'publish')) return;
+    let savedDraft = false;
+    setOperationError(null);
+    setOperationNotice(null);
+    try {
+      if (!selectedAlbum.published && dirtyRef.current) {
+        await saveDraftMutation();
+        savedDraft = true;
+      }
       if (selectedAlbum.published) await trpc.admin.unpublishAlbum.mutate({ id: selectedAlbum.id });
       else await trpc.admin.publishAlbum.mutate({ id: selectedAlbum.id });
-    }, selectedAlbum.published ? 'Альбом снят с публикации.' : 'Альбом опубликован.');
+      if (!await loadData(false)) return;
+      dirtyRef.current = false;
+      setDirty(false);
+      setOperationNotice(selectedAlbum.published ? 'Альбом снят с публикации.' : 'Альбом опубликован.');
+    } catch (error) {
+      if (savedDraft && await loadData(false)) {
+        dirtyRef.current = false;
+        setDirty(false);
+      }
+      setOperationError(humanizeAdminError(error));
+    } finally {
+      endOperation();
+    }
+  };
+
+  const persistAlbumOrder = async (next: Albums): Promise<void> => {
+    const previous = albums;
+    setAlbums(next);
+    const saved = await run('reorder-albums', async () => {
+      await trpc.admin.reorderAlbums.mutate({ albumIds: next.map(({ id }) => id) });
+    }, 'Порядок альбомов сохранён.');
+    if (!saved && previous) setAlbums(previous);
+  };
+
+  const moveAlbum = (id: string, direction: -1 | 1): void => {
+    if (!albums || busy) return;
+    const index = albums.findIndex((album) => album.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= albums.length) return;
+    void persistAlbumOrder(moveItemById(albums, id, target));
+  };
+
+  const reorderAlbum = (targetId: string): void => {
+    if (!albums || busy || !draggedAlbumId || draggedAlbumId === targetId) return;
+    const target = albums.findIndex((album) => album.id === targetId);
+    if (target < 0) return;
+    void persistAlbumOrder(moveItemById(albums, draggedAlbumId, target));
+    setDraggedAlbumId(null);
+    setDragOverAlbumId(null);
+  };
+
+  const retryMedia = async (item: MediaItem): Promise<void> => {
+    await run('retry-media', async () => { await trpc.admin.retryMedia.mutate({ id: item.id }); },
+      `Повторная обработка «${item.originalName}» запущена.`);
+  };
+
+  const deleteMedia = async (item: MediaItem): Promise<void> => {
+    const links = item.albumLinks.map(({ album }) => `${album.title}${album.published ? ' (опубликован)' : ''}`).join(', ');
+    if (!window.confirm(`Удалить «${item.originalName}» окончательно?${links ? ` Связи: ${links}.` : ''}`)) return;
+    await run('delete-media', async () => { await trpc.admin.deleteMedia.mutate({ id: item.id }); },
+      `Медиа «${item.originalName}» удалено.`);
+  };
+
+  const logout = async (): Promise<void> => {
+    if (!confirmDiscard() || !beginOperation('logout')) return;
+    try {
+      const response = await fetch('/auth/logout', { method: 'POST' });
+      if (!response.ok) throw new Error('logout_failed');
+      navigate('/');
+    } catch (error) {
+      setOperationError(humanizeAdminError(error));
+    } finally {
+      endOperation();
+    }
   };
 
   const availableMedia = (media ?? []).filter((item) =>
@@ -433,7 +558,7 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
     <Stack gap="xl">
       <Group className={header} justify="space-between">
         <div><Title order={1}>Библиотека</Title><Text c="dimmed">Загрузка, обработка и курирование альбомов</Text></div>
-        <Button variant="subtle" onClick={async () => { await fetch('/auth/logout', { method: 'POST' }); navigate('/'); }}>Выйти</Button>
+        <Button variant="subtle" disabled={busy} loading={pendingOperation === 'logout'} onClick={() => void logout()}>{pendingOperation === 'logout' ? 'Выход…' : 'Выйти'}</Button>
       </Group>
       {operationError && <Alert color="red" title="Операция не выполнена" withCloseButton onClose={() => setOperationError(null)}>{operationError}</Alert>}
       {operationNotice && <Alert color="green" title="Готово" withCloseButton onClose={() => setOperationNotice(null)}>{operationNotice}</Alert>}
@@ -442,21 +567,47 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
           <Card withBorder>
             <Stack gap="sm">
               <Title order={3}>Альбомы</Title>
-              {albums?.map((album) => <Button key={album.id} className={albumButton} variant={album.id === selectedAlbumId ? 'light' : 'subtle'} onClick={() => selectAlbum(album.id)}>
-                <Stack gap={0}><Text size="sm" fw={600}>{album.title}</Text><Text size="xs" c="dimmed">{album.media.length} медиа · {album.published ? 'опубликован' : 'черновик'}</Text></Stack>
-              </Button>)}
+              {albums?.map((album, index) => <Group
+                key={album.id}
+                data-album-id={album.id}
+                gap="xs"
+                wrap="nowrap"
+                draggable={!busy}
+                className={dragOverAlbumId === album.id ? dragTarget : undefined}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData('text/plain', album.id);
+                  setDraggedAlbumId(album.id);
+                }}
+                onDragEnd={() => { setDraggedAlbumId(null); setDragOverAlbumId(null); }}
+                onDragOver={(event) => {
+                  if (!busy && draggedAlbumId && draggedAlbumId !== album.id) {
+                    event.preventDefault();
+                    setDragOverAlbumId(album.id);
+                  }
+                }}
+                onDrop={(event) => { event.preventDefault(); reorderAlbum(album.id); }}
+              >
+                <Button className={albumButton} disabled={busy} variant={album.id === selectedAlbumId ? 'light' : 'subtle'} onClick={() => selectAlbum(album.id)}>
+                  <Stack gap={0}><Text size="sm" fw={600}>{album.title}</Text><Text size="xs" c="dimmed">{album.media.length} медиа · {album.published ? 'опубликован' : 'черновик'}</Text></Stack>
+                </Button>
+                <Stack gap={2}>
+                  <ActionIcon aria-label={`Переместить альбом «${album.title}» выше`} variant="default" disabled={busy || index === 0} onClick={() => moveAlbum(album.id, -1)}>↑</ActionIcon>
+                  <ActionIcon aria-label={`Переместить альбом «${album.title}» ниже`} variant="default" disabled={busy || index === albums.length - 1} onClick={() => moveAlbum(album.id, 1)}>↓</ActionIcon>
+                </Stack>
+              </Group>)}
               {albums?.length === 0 && <Text size="sm" c="dimmed">Альбомов пока нет.</Text>}
             </Stack>
           </Card>
           <Card withBorder>
             <Stack gap="sm">
               <Title order={3}>Управление</Title>
-              <Button onClick={() => { setCreateAlbumError(null); setCreateAlbumOpen(true); }}>Создать альбом</Button>
+              <Button disabled={busy} onClick={() => { setCreateAlbumError(null); setCreateAlbumOpen(true); }}>Создать альбом</Button>
             </Stack>
           </Card>
           <Modal
             opened={createAlbumOpen}
-            onClose={() => { if (!createAlbumSubmitting) setCreateAlbumOpen(false); }}
+            onClose={() => { if (pendingOperation !== 'create') setCreateAlbumOpen(false); }}
             title="Создать черновой альбом"
             centered
           >
@@ -475,8 +626,8 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
                   error={createAlbumError && newTitle.trim() ? createAlbumError : undefined}
                 />
                 <Group justify="flex-end">
-                  <Button variant="default" onClick={() => setCreateAlbumOpen(false)} disabled={createAlbumSubmitting}>Отмена</Button>
-                  <Button type="submit" loading={createAlbumSubmitting}>Создать черновик</Button>
+                  <Button variant="default" onClick={() => setCreateAlbumOpen(false)} disabled={pendingOperation === 'create'}>Отмена</Button>
+                  <Button type="submit" loading={pendingOperation === 'create'} disabled={busy && pendingOperation !== 'create'}>{pendingOperation === 'create' ? 'Создание…' : 'Создать черновик'}</Button>
                 </Group>
               </Stack>
             </form>
@@ -492,16 +643,16 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
                   <Badge color={selectedAlbum.published ? 'green' : 'yellow'}>{selectedAlbum.published ? 'Опубликован' : 'Черновик'}</Badge>
                 </Group>
                 <Group grow align="flex-end">
-                  <TextInput label="Название" value={title} disabled={selectedAlbum.published} onChange={(event) => { setTitle(event.currentTarget.value); setDirty(true); }} />
-                  <TextInput label="Slug" value={slug} disabled={selectedAlbum.published} onChange={(event) => { setSlug(event.currentTarget.value); setDirty(true); }} />
+                  <TextInput label="Название" value={title} disabled={selectedAlbum.published || busy} onChange={(event) => { setTitle(event.currentTarget.value); markDirty(); }} />
+                  <TextInput label="Slug" value={slug} disabled={selectedAlbum.published || busy} onChange={(event) => { setSlug(event.currentTarget.value); markDirty(); }} />
                 </Group>
-                <Textarea label="Описание" value={description} disabled={selectedAlbum.published} onChange={(event) => { setDescription(event.currentTarget.value); setDirty(true); }} />
+                <Textarea label="Описание" value={description} disabled={selectedAlbum.published || busy} onChange={(event) => { setDescription(event.currentTarget.value); markDirty(); }} />
                 <Group justify="space-between">
                   <Text size="sm" c="dimmed">{selectedAlbum.media.length} элементов · {dirty ? 'есть несохранённые изменения' : 'синхронизировано'}</Text>
                   <Group>
-                    <Button variant="default" onClick={() => void saveMetadata()} disabled={selectedAlbum.published || !dirty}>Сохранить данные</Button>
-                    <Button color={selectedAlbum.published ? 'gray' : 'blue'} onClick={() => void togglePublish()}>{selectedAlbum.published ? 'Снять с публикации' : 'Опубликовать'}</Button>
-                    <Button color="red" variant="light" onClick={() => void deleteAlbum()} disabled={selectedAlbum.published}>Удалить</Button>
+                    <Button variant="default" loading={pendingOperation === 'save'} onClick={() => void saveAlbum()} disabled={selectedAlbum.published || !dirty || busy}>{pendingOperation === 'save' ? 'Сохранение…' : 'Сохранить альбом'}</Button>
+                    <Button color={selectedAlbum.published ? 'gray' : 'blue'} loading={pendingOperation === 'publish' || pendingOperation === 'unpublish'} disabled={busy} onClick={() => void togglePublish()}>{pendingOperation === 'publish' ? 'Публикация…' : pendingOperation === 'unpublish' ? 'Снятие…' : selectedAlbum.published ? 'Снять с публикации' : 'Опубликовать'}</Button>
+                    <Button color="red" variant="light" loading={pendingOperation === 'delete-album'} onClick={() => void deleteAlbum()} disabled={selectedAlbum.published || busy}>Удалить</Button>
                   </Group>
                 </Group>
               </Stack>
@@ -509,30 +660,31 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
 
             {!selectedAlbum.published && <Card withBorder>
               <Stack gap="md">
-                <Group justify="space-between"><Title order={3}>Мультизагрузка</Title><Select label="Альбом назначения" value={selectedAlbumId} onChange={selectAlbum} data={albums?.filter((album) => !album.published).map((album) => ({ value: album.id, label: album.title })) ?? []} /></Group>
+                <Group justify="space-between"><Title order={3}>Мультизагрузка</Title><Select label="Альбом назначения" value={selectedAlbumId} disabled={busy} onChange={selectAlbum} data={albums?.filter((album) => !album.published).map((album) => ({ value: album.id, label: album.title })) ?? []} /></Group>
                 <label className={dropzone} htmlFor="admin-file-input" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}>
                   <Stack align="center" gap="xs"><Text fw={600}>Перетащите изображения сюда или выберите файлы</Text><Text size="sm" c="dimmed">Каждый файл загружается независимо; параллельно выполняются до 3 передач.</Text><Button component="span">Выбрать файлы</Button></Stack>
                 </label>
-                <input id="admin-file-input" className={visuallyHidden} type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,image/jxl,image/heif,image/heic" onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ''; }} />
+                <input id="admin-file-input" className={visuallyHidden} type="file" multiple disabled={busy} accept="image/jpeg,image/png,image/webp,image/avif,image/jxl,image/heif,image/heic" onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = ''; }} />
                 {queue.length > 0 && <div className={queueGrid}>{queue.map((item) => <Card key={item.localId} className={queueCard} withBorder padding={0}>
                   <img className={preview} src={item.previewUrl} alt="" />
-                  <Stack p="sm" gap="xs"><Text size="sm" fw={600} lineClamp={1}>{item.file.name}</Text><Badge color={statusColor[item.phase]}>{statusLabel[item.phase]}</Badge>{item.error && <Text size="xs" c="red">{item.error}</Text>}<Group gap="xs"><Button size="xs" variant="light" onClick={() => retryUpload(item)} disabled={item.phase !== 'upload-failed'}>Повторить</Button><Button size="xs" variant="subtle" color="red" onClick={() => removeQueueItem(item)}>Удалить</Button></Group></Stack>
+                    <Stack p="sm" gap="xs"><Text size="sm" fw={600} lineClamp={1}>{item.file.name}</Text><Badge color={statusColor[item.phase]}>{statusLabel[item.phase]}</Badge>{item.error && <Text size="xs" c="red">{item.error}</Text>}<Group gap="xs"><Button size="xs" variant="light" onClick={() => retryUpload(item)} disabled={busy || item.phase !== 'upload-failed'}>Повторить</Button><Button size="xs" variant="subtle" color="red" disabled={busy} onClick={() => removeQueueItem(item)}>Удалить</Button></Group></Stack>
                 </Card>)}</div>}
               </Stack>
             </Card>}
 
             <Card withBorder>
               <Stack gap="md">
-                <Group justify="space-between"><div><Title order={3}>Состав альбома</Title><Text size="sm" c="dimmed">{readyCount} готово · {processingCount} в обработке · {dirty ? 'есть несохранённые изменения' : 'синхронизировано'}</Text></div><Button onClick={() => void saveMembership()} disabled={selectedAlbum.published || !dirty}>Сохранить состав</Button></Group>
+                <Group justify="space-between"><div><Title order={3}>Состав альбома</Title><Text size="sm" c="dimmed">{readyCount} готово · {processingCount} в обработке · {dirty ? 'есть несохранённые изменения' : 'синхронизировано'}</Text></div></Group>
                 {membership.length === 0 && <Text c="dimmed">В альбоме пока нет готовых медиа.</Text>}
                 <div className={compositionGrid}>{membership.map((item, index) => {
                   const value = mediaMap.get(item.mediaId);
                   if (!value) return <Card key={item.mediaId} withBorder><Text c="red">Медиа {item.mediaId} недоступно</Text></Card>;
                   const assignment = value.assignment ?? { assignmentStatus: 'not_requested' as const, assignmentError: null, targetAlbumId: null };
-                  const canReorder = !selectedAlbum.published;
+                  const canReorder = !selectedAlbum.published && !busy;
                   const previewFailed = failedPreviewIds.has(value.id);
                   return <Card
                     key={item.mediaId}
+                    data-album-media-id={item.mediaId}
                     withBorder
                     draggable={canReorder}
                     className={dragOverMediaId === item.mediaId ? dragTarget : undefined}
@@ -555,19 +707,61 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
                     }}
                   >
                     {value.status === 'ready' && (previewFailed ? <div className={previewFallback}>Превью недоступно</div> : <img className={mediaPreview} src={`/media/${value.id}/jpeg/640`} alt={value.originalName} onError={() => setFailedPreviewIds((current) => new Set([...current, value.id]))} />)}
-                    <Stack p="sm" gap="xs"><Text size="sm" fw={600} lineClamp={1}>{value.originalName}</Text><Badge color={value.status === 'ready' ? 'green' : 'red'}>{value.status}</Badge>{assignment.assignmentStatus === 'unavailable' && <Text size="xs" c="orange">{humanizeAdminError(new Error(assignment.assignmentError ?? 'target_album_not_found'))}</Text>}<Checkbox label="Избранное" checked={item.featured} disabled={selectedAlbum.published} onChange={(event) => updateMembership(item.mediaId, { featured: event.currentTarget.checked })} /><Group gap="xs"><ActionIcon aria-label="Переместить выше" variant="default" disabled={index === 0 || selectedAlbum.published} onClick={() => moveMembership(item.mediaId, -1)}>↑</ActionIcon><ActionIcon aria-label="Переместить ниже" variant="default" disabled={index === membership.length - 1 || selectedAlbum.published} onClick={() => moveMembership(item.mediaId, 1)}>↓</ActionIcon><Button size="xs" color="red" variant="subtle" disabled={selectedAlbum.published} onClick={() => removeFromMembership(item.mediaId)}>Убрать</Button></Group></Stack>
+                    <Stack p="sm" gap="xs"><Text size="sm" fw={600} lineClamp={1}>{value.originalName}</Text><Badge color={value.status === 'ready' ? 'green' : 'red'}>{mediaStatusLabel[value.status]}</Badge>{assignment.assignmentStatus === 'unavailable' && <Text size="xs" c="orange">{humanizeAdminError(new Error(assignment.assignmentError ?? 'target_album_not_found'))}</Text>}<Checkbox label="Избранное" checked={item.featured} disabled={selectedAlbum.published || busy} onChange={(event) => updateMembership(item.mediaId, { featured: event.currentTarget.checked })} /><Group gap="xs"><ActionIcon aria-label="Переместить выше" variant="default" disabled={busy || index === 0 || selectedAlbum.published} onClick={() => moveMembership(item.mediaId, -1)}>↑</ActionIcon><ActionIcon aria-label="Переместить ниже" variant="default" disabled={busy || index === membership.length - 1 || selectedAlbum.published} onClick={() => moveMembership(item.mediaId, 1)}>↓</ActionIcon><Button size="xs" color="red" variant="subtle" disabled={busy || selectedAlbum.published} onClick={() => removeFromMembership(item.mediaId)}>Убрать</Button></Group></Stack>
                   </Card>;
                 })}</div>
                 {availableMedia.length > 0 && <><Divider /><Stack gap="xs"><Text fw={600}>Добавить готовые медиа</Text><div className={availableMediaGrid}>{availableMedia.map((item) => {
                   const previewFailed = failedPreviewIds.has(item.id);
                   return <Card key={item.id} className={availableMediaCard} withBorder padding={0}>
                     {previewFailed ? <div className={previewFallback}>Превью недоступно</div> : <img className={mediaPreview} src={`/media/${item.id}/jpeg/640`} alt={item.originalName} onError={() => setFailedPreviewIds((current) => new Set([...current, item.id]))} />}
-                    <Stack p="sm" gap="xs"><Text size="sm" fw={600} lineClamp={1}>{item.originalName}</Text><Badge color="green">Готово</Badge><Button size="xs" variant="light" disabled={selectedAlbum.published || membership.some(({ mediaId }) => mediaId === item.id)} onClick={() => addToMembership(item.id)}>Добавить</Button></Stack>
+                    <Stack p="sm" gap="xs"><Text size="sm" fw={600} lineClamp={1}>{item.originalName}</Text><Badge color="green">Готово</Badge><Button size="xs" variant="light" disabled={busy || selectedAlbum.published || membership.some(({ mediaId }) => mediaId === item.id)} onClick={() => addToMembership(item.id)}>Добавить</Button></Stack>
                   </Card>;
                 })}</div></Stack></>}
               </Stack>
             </Card>
           </>}
+          <Card withBorder>
+            <Stack gap="md">
+              <div><Title order={2}>Медиатека</Title><Text c="dimmed">Все загруженные медиа независимо от выбранного альбома</Text></div>
+              <Group grow align="flex-end">
+                <TextInput label="Поиск по имени" placeholder="Например, portrait.jpg" value={mediaSearch} onChange={(event) => setMediaSearch(event.currentTarget.value)} />
+                <Select
+                  label="Состояние"
+                  value={mediaStatus}
+                  onChange={(value) => setMediaStatus((value as MediaItem['status'] | 'all' | null) ?? 'all')}
+                  data={[
+                    { value: 'all', label: 'Все состояния' },
+                    ...Object.entries(mediaStatusLabel).map(([value, label]) => ({ value, label })),
+                  ]}
+                />
+              </Group>
+              {filteredMedia.length === 0 && <Text c="dimmed">По заданным условиям ничего не найдено.</Text>}
+              <div className={availableMediaGrid}>{filteredMedia.map((item) => {
+                const hasPreview = item.status === 'ready' && item.derivatives.some(({ format }) => format === 'jpeg');
+                const previewFailed = failedPreviewIds.has(item.id);
+                return <Card key={item.id} data-library-media-id={item.id} className={availableMediaCard} withBorder padding={0}>
+                  {hasPreview && !previewFailed
+                    ? <button type="button" className={previewButton} aria-label={`Открыть превью «${item.originalName}»`} onClick={() => setPreviewMediaId(item.id)}><img className={mediaPreview} src={`/media/${item.id}/jpeg/640`} alt={item.originalName} onError={() => setFailedPreviewIds((current) => new Set([...current, item.id]))} /></button>
+                    : <div className={previewFallback}>{previewFailed ? 'Превью недоступно' : 'Превью появится после обработки'}</div>}
+                  <Stack p="sm" gap="xs">
+                    <Text size="sm" fw={600}>{item.originalName}</Text>
+                    <Group gap="xs"><Badge color={item.status === 'ready' ? 'green' : item.status === 'failed' ? 'red' : 'yellow'}>{mediaStatusLabel[item.status]}</Badge><Text size="xs" c="dimmed">{item.width > 0 && item.height > 0 ? `${String(item.width)}×${String(item.height)}` : 'размер неизвестен'} · {String(Math.ceil(item.originalBytes / 1024))} КБ</Text></Group>
+                    {item.safeError && <Text size="xs" c="red">{humanizeAdminError(new Error(item.safeError))}</Text>}
+                    <Text size="xs" c="dimmed">{item.albumLinks.length > 0 ? item.albumLinks.map(({ album }) => `${album.title}${album.published ? ' (опубликован)' : ' (черновик)'}`).join(', ') : 'Не входит в альбомы'}</Text>
+                    <Group gap="xs">
+                      {item.status === 'failed' && <Button size="xs" variant="light" loading={pendingOperation === 'retry-media'} disabled={busy} onClick={() => void retryMedia(item)}>Повторить обработку</Button>}
+                      {(item.status === 'ready' || item.status === 'failed') && <Button size="xs" variant="light" color="red" loading={pendingOperation === 'delete-media'} disabled={busy} onClick={() => void deleteMedia(item)}>Удалить</Button>}
+                    </Group>
+                  </Stack>
+                </Card>;
+              })}</div>
+            </Stack>
+          </Card>
+          <Modal opened={Boolean(previewMedia && previewDerivative)} onClose={() => setPreviewMediaId(null)} title={previewMedia?.originalName ?? 'Превью'} centered size="xl">
+            {previewMedia && previewDerivative && !failedPreviewIds.has(previewMedia.id)
+              ? <img className={libraryPreview} src={`/media/${previewMedia.id}/jpeg/${String(previewDerivative.width)}`} alt={previewMedia.originalName} onError={() => setFailedPreviewIds((current) => new Set([...current, previewMedia.id]))} />
+              : <div className={previewFallback}>Превью недоступно</div>}
+          </Modal>
         </Stack>
       </div>
     </Stack>
