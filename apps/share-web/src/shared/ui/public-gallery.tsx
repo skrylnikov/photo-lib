@@ -8,16 +8,18 @@ export const PublicGallery = ({
   title,
   photos,
   action,
+  countLabel,
   headingLevel,
 }: {
   title: string;
   photos: readonly PublicPhoto[];
   action?: ReactNode;
+  countLabel?: string;
   headingLevel?: 1 | 2;
 }) => {
   const viewer = usePhotoViewer(photos.length);
   return <>
-    <FilmGallery title={title} photos={photos} action={action} headingLevel={headingLevel} onOpen={viewer.open} />
+    <FilmGallery title={title} photos={photos} action={action} countLabel={countLabel} headingLevel={headingLevel} onOpen={viewer.open} />
     <PhotoViewer
       title={title}
       photos={photos}

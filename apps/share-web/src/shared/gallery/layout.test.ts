@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type { PublicPhoto } from 'types';
 
-import { buildJustifiedRows, formatFrameCount } from './layout';
+import { buildJustifiedRows, formatAllFrames, formatFrameCount } from './layout';
 import { nextViewerIndex } from '../ui/viewer-state';
 
 const photo = (id: string, width: number, height: number): PublicPhoto => ({
@@ -46,9 +46,16 @@ test('every row is independent LTR and stays inside its available width', () => 
   }));
 });
 
-test('album header uses singular and plural frame counts', () => {
-  assert.equal(formatFrameCount(1), '1 frame');
-  assert.equal(formatFrameCount(4), '4 frames');
+test('album header uses Russian frame counts', () => {
+  assert.equal(formatFrameCount(1), '1 кадр');
+  assert.equal(formatFrameCount(2), '2 кадра');
+  assert.equal(formatFrameCount(5), '5 кадров');
+  assert.equal(formatFrameCount(11), '11 кадров');
+  assert.equal(formatFrameCount(21), '21 кадр');
+  assert.equal(formatFrameCount(1, true), '1 избранный кадр');
+  assert.equal(formatFrameCount(2, true), '2 избранных кадра');
+  assert.equal(formatFrameCount(5, true), '5 избранных кадров');
+  assert.equal(formatAllFrames(12), 'Все 12 кадров →');
 });
 
 test('viewer navigation wraps through the ordered album list', () => {

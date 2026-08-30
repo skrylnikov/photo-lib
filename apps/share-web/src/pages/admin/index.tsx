@@ -171,6 +171,7 @@ export const AdminPage = ({ navigate }: { navigate: (path: string) => void }) =>
   }, [mergeServerStatuses, syncSelectedAlbum]);
 
   useEffect(() => {
+    document.title = 'Библиотека — dskr.photos';
     void loadData(true);
   }, [loadData]);
 

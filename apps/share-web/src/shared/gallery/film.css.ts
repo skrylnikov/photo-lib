@@ -1,4 +1,4 @@
-import { createVar, style } from '@vanilla-extract/css';
+import { createVar, globalStyle, style } from '@vanilla-extract/css';
 import paperTexture from './paper-texture.svg';
 
 const paperGrain = `url("${paperTexture}")`;
@@ -58,7 +58,16 @@ export const header = style({
   justifyContent: 'space-between',
   gap: 16,
   marginBottom: 'clamp(14px, 2vw, 22px)',
+  '@media': {
+    '(max-width: 640px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: 10,
+    },
+  },
 });
+
+globalStyle(`${header} > div:first-child`, { minWidth: 0 });
 
 export const title = style({
   margin: 0,
@@ -80,6 +89,41 @@ export const count = style({
 export const action = style({
   flex: '0 0 auto',
   paddingTop: 4,
+  '@media': {
+    '(max-width: 640px)': {
+      alignSelf: 'flex-start',
+      paddingTop: 0,
+    },
+  },
+});
+
+globalStyle(`${action} a`, {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: 44,
+  minHeight: 44,
+  boxSizing: 'border-box',
+  padding: '0 14px',
+  border: '1px solid rgba(78, 64, 52, .28)',
+  borderRadius: 999,
+  color: '#4e4034',
+  background: 'rgba(255, 255, 255, .24)',
+  fontSize: 14,
+  fontWeight: 600,
+  lineHeight: 1.2,
+  textDecoration: 'none',
+  transition: 'background 140ms ease, border-color 140ms ease',
+});
+
+globalStyle(`${action} a:hover`, {
+  borderColor: 'rgba(78, 64, 52, .48)',
+  background: 'rgba(255, 255, 255, .42)',
+});
+
+globalStyle(`${action} a:focus-visible`, {
+  outline: '2px solid #4e4034',
+  outlineOffset: 3,
 });
 
 export const filmBody = style({

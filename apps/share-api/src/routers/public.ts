@@ -1,12 +1,16 @@
 import { router, publicProcedure } from '../trpc';
 
-import { prisma } from 'database';
+import { prisma, Prisma } from 'database';
 import { z } from 'zod';
 
 type PublicDerivativeFormat = 'jxl' | 'avif' | 'heic' | 'webp' | 'jpeg';
 
 const derivativeUrl = (mediaId: string, format: string, width: number): string =>
   `/media/${encodeURIComponent(mediaId)}/${format}/${String(width)}`;
+
+export const publicAlbumMediaWhere = {
+  media: { status: 'ready', derivatives: { some: {} } },
+} satisfies Prisma.AlbumMediaWhereInput;
 
 export const toPhoto = (media: {
   id: string;
@@ -32,14 +36,27 @@ export const toPhoto = (media: {
   })),
 });
 
+export const toHomeAlbum = (
+  album: { slug: string; title: string; description: string | null },
+  photos: ReturnType<typeof toPhoto>[],
+  photoCount: number,
+) => ({
+  slug: album.slug,
+  title: album.title,
+  description: album.description,
+  photoCount,
+  photos,
+});
+
 export const publicRouter = router({
   home: publicProcedure.query(async () => {
     const albums = await prisma.album.findMany({
       where: { published: true },
       orderBy: { publishedAt: 'desc' },
       include: {
+        _count: { select: { media: { where: publicAlbumMediaWhere } } },
         media: {
-          where: { featured: true },
+          where: { featured: true, ...publicAlbumMediaWhere },
           orderBy: { position: 'asc' },
           include: { media: { include: { derivatives: true } } },
         },
@@ -49,10 +66,9 @@ export const publicRouter = router({
     return {
       albums: albums.flatMap((album) => {
         const photos = album.media
-          .filter(({ media }) => media.status === 'ready' && media.derivatives.length > 0)
           .map(({ media }, frameIndex) => toPhoto(media, frameIndex));
         return photos.length > 0
-          ? [{ slug: album.slug, title: album.title, description: album.description, photos }]
+          ? [toHomeAlbum(album, photos, album._count.media)]
           : [];
       }),
     };
@@ -63,6 +79,7 @@ export const publicRouter = router({
       where: { slug: input.slug, published: true },
       include: {
         media: {
+          where: publicAlbumMediaWhere,
           orderBy: { position: 'asc' },
           include: { media: { include: { derivatives: true } } },
         },
@@ -74,9 +91,7 @@ export const publicRouter = router({
       slug: album.slug,
       title: album.title,
       description: album.description,
-      photos: album.media
-        .filter(({ media }) => media.status === 'ready' && media.derivatives.length > 0)
-          .map(({ media }, frameIndex) => toPhoto(media, frameIndex)),
+      photos: album.media.map(({ media }, frameIndex) => toPhoto(media, frameIndex)),
     };
   }),
 });

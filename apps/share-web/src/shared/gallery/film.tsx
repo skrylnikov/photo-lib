@@ -9,12 +9,14 @@ export const FilmGallery = ({
   title,
   photos,
   action,
+  countLabel,
   headingLevel = 2,
   onOpen,
 }: {
   title: string;
   photos: readonly PublicPhoto[];
   action?: ReactNode;
+  countLabel?: string;
   headingLevel?: 1 | 2;
   onOpen: (index: number, origin: HTMLButtonElement, source: HTMLElement) => void;
 }) => {
@@ -45,7 +47,7 @@ export const FilmGallery = ({
       <header className={styles.header}>
         <div>
           <Heading id={headingId} className={styles.title}>{title}</Heading>
-          <p className={styles.count}>{formatFrameCount(photos.length)}</p>
+          <p className={styles.count}>{countLabel ?? formatFrameCount(photos.length)}</p>
         </div>
         {action ? <div className={styles.action}>{action}</div> : null}
       </header>

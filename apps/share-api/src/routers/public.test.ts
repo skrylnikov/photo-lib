@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { toPhoto } from './public';
+import { publicAlbumMediaWhere, toHomeAlbum, toPhoto } from './public';
 
 test('public photo DTO contains no storage key or processing metadata', () => {
   const media = {
@@ -47,4 +47,27 @@ test('public photo DTO falls back to createdAt and keeps the frame index', () =>
   }, 3);
   assert.equal(photo.capturedAt, '2026-08-18T10:00:00.000Z');
   assert.equal(photo.frameIndex, 3);
+});
+
+test('home album exposes only its safe summary and public media count', () => {
+  assert.deepEqual(publicAlbumMediaWhere, {
+    media: { status: 'ready', derivatives: { some: {} } },
+  });
+
+  const source = {
+    slug: 'winter-spb',
+    title: 'Зимний Питер',
+    description: null,
+    privateKey: 'not-public',
+  };
+  const album = toHomeAlbum(source, [], 12);
+
+  assert.deepEqual(album, {
+    slug: 'winter-spb',
+    title: 'Зимний Питер',
+    description: null,
+    photoCount: 12,
+    photos: [],
+  });
+  assert.equal('privateKey' in album, false);
 });

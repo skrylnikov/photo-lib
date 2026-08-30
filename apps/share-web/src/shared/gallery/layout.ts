@@ -5,7 +5,17 @@ export type FilmPhoto = PublicPhoto & {
   renderHeight: number;
 };
 
-export const formatFrameCount = (count: number): string => `${String(count)} ${count === 1 ? 'frame' : 'frames'}`;
+const russianPluralRules = new Intl.PluralRules('ru');
+
+const frameForm = (count: number): string => {
+  const form = russianPluralRules.select(count);
+  return form === 'one' ? 'кадр' : form === 'few' ? 'кадра' : 'кадров';
+};
+
+export const formatFrameCount = (count: number, featured = false): string =>
+  `${String(count)}${featured ? ` ${russianPluralRules.select(count) === 'one' ? 'избранный' : 'избранных'}` : ''} ${frameForm(count)}`;
+
+export const formatAllFrames = (count: number): string => `Все ${formatFrameCount(count)} →`;
 
 export interface JustifiedRow {
   items: FilmPhoto[];
